@@ -1,0 +1,9 @@
+{
+  "databases": {
+    "mydb": {
+      "engine": "postgres",
+      "size": "small",
+      "created": "2025-12-04T15:48:06.327Z"
+    }
+  }
+}
