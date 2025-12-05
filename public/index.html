@@ -394,7 +394,7 @@
                 const idToken = await result.user.getIdToken();
 
                 // Send to backend to get API key
-                const res = await fetch('https://cloudx-api.onrender.com/api/v1/auth/google', {
+                const res = await fetch('https://cloudx-api.onrender.com/api/v1/auth/google-signin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ idToken })
