@@ -1,6 +1,5 @@
 {
     "hosting": {
-        "site": "cloudx-api",
         "public": "public",
         "ignore": [
             "firebase.json",
