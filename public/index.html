@@ -4,102 +4,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CloudX - Your Personal Cloud Storage & Database">
+    <meta name="theme-color" content="#667eea">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
+    <link rel="apple-touch-icon" href="/icon-192.png">
     <title>CloudX Dashboard</title>
-    <button onclick="createDatabase()">Create Database</button>
-    </div>
-    </div>
-    <div class="card">
-        <h2>Databases</h2>
-        <div id="databasesList" class="list"></div>
-        <button onclick="loadDatabases()">Refresh</button>
-    </div>
-    </div>
-
-    <!-- API Keys Tab -->
-    <div id="apikeys" class="tab-content">
-        <div class="card">
-            <h2>Generate API Key</h2>
-            <div class="form-group">
-                <input type="text" id="keyName" placeholder="Key name (e.g., My App)">
-                <button onclick="generateApiKey()">Generate Key</button>
-            </div>
-            <div id="newKeyDisplay"
-                style="display:none; margin-top:15px; padding:15px; background:#f0f8ff; border-radius:8px;">
-                <p style="margin:0 0 10px 0; font-weight:600;">⚠️ Save this key - it won't be shown again!</p>
-                <code id="newKeyValue"
-                    style="display:block; padding:10px; background:white; border-radius:4px; word-break:break-all;"></code>
-            </div>
-        </div>
-        <div class="card">
-            <!DOCTYPE html>
-            <html lang="en">
-
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>CloudX Dashboard</title>
-                <link rel="stylesheet" href="styles.css">
-                <link rel="stylesheet" href="filebrowser.css">
-            </head>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="filebrowser.css">
+</head>
 
 <body>
     <div class="container">
         <header>
-            <h1>☁️ CloudX Dashboard</h1>
-            <p class="subtitle">Production Cloud Provider</p>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>☁️ CloudX Dashboard</h1>
+                    <p class="subtitle">Production Cloud Provider</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <a href="login.html" class="btn-login"
+                        style="text-decoration: none; background: white; color: var(--primary); padding: 8px 16px; border-radius: 8px; font-weight: 600;">Login
+                        with Google</a>
+                    <a href="filebrowser.html" target="_blank" class="btn-browser"
+                        style="text-decoration: none; background: rgba(255,255,255,0.2); color: white; padding: 8px 16px; border-radius: 8px; font-weight: 600;">Open
+                        File Browser ↗️</a>
+                </div>
+            </div>
         </header>
 
-        <div class="form-group">
-            <input type="text" id="dbName" placeholder="Database name">
-            <input type="text" id="dbEngine" placeholder="Engine (e.g., postgres)">
-            <select id="dbSize">
-                <option value="small">Small</option>
-                <option value="medium">Medium</option>
-                <option value="large">Large</option>
-            </select>
-            <button onclick="createDatabase()">Create Database</button>
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('storage')">📁 Files</button>
+            <button class="tab" onclick="showTab('database')">🗄️ Database</button>
+            <button class="tab" onclick="showTab('apikeys')">🔑 API Keys</button>
         </div>
-    </div>
-    <div class="card">
-        <h2>Databases</h2>
-        <div id="databasesList" class="list"></div>
-        <button onclick="loadDatabases()">Refresh</button>
-    </div>
-    </div>
 
-    <!-- API Keys Tab -->
-    <div id="apikeys" class="tab-content">
-        <div class="card">
-            <h2>Generate API Key</h2>
-            <div class="form-group">
-                <input type="text" id="keyName" placeholder="Key name (e.g., My App)">
-                <button onclick="generateApiKey()">Generate Key</button>
-            </div>
-            <div id="newKeyDisplay"
-                style="display:none; margin-top:15px; padding:15px; background:#f0f8ff; border-radius:8px;">
-                <p style="margin:0 0 10px 0; font-weight:600;">⚠️ Save this key - it won't be shown again!</p>
-                <code id="newKeyValue"
-                    style="display:block; padding:10px; background:white; border-radius:4px; word-break:break-all;"></code>
+        <!-- Storage Tab -->
+        <div id="storage" class="tab-content active">
+            <div class="card">
+                <div class="file-browser-header">
+                    <select id="bucketSelector" onchange="loadFiles()">
+                        <option value="">Select a bucket...</option>
+                    </select>
+                    <div class="file-actions">
+                        <button onclick="showCreateBucketDialog()">+ Bucket</button>
+                        <button onclick="showCreateFolderDialog()">📁 Folder</button>
+                        <button onclick="document.getElementById('fileInput').click()">📤 Upload</button>
+                        <input type="file" id="fileInput" style="display:none" onchange="uploadFile()" multiple>
+                    </div>
+                </div>
+
+                <div id="breadcrumb" class="breadcrumb"></div>
+
+                <div id="fileList" class="file-grid"></div>
             </div>
         </div>
-        <div class="card">
-            <h2>API Keys</h2>
-            <div id="keysList" class="list"></div>
-            <button onclick="loadApiKeys()">Refresh</button>
+
+        <!-- Database Tab -->
+        <div id="database" class="tab-content">
+            <div class="card">
+                <h2>Create Database</h2>
+                <div class="form-group">
+                    <input type="text" id="dbName" placeholder="Database name">
+                    <input type="text" id="dbEngine" placeholder="Engine (e.g., postgres)">
+                    <select id="dbSize">
+                        <option value="small">Small</option>
+                        <option value="medium">Medium</option>
+                        <option value="large">Large</option>
+                    </select>
+                    <button onclick="createDatabase()">Create Database</button>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Databases</h2>
+                <div id="databasesList" class="list"></div>
+                <button onclick="loadDatabases()">Refresh</button>
+            </div>
         </div>
-    </div>
 
-    <div id="message" class="message"></div>
+        <!-- API Keys Tab -->
+        <div id="apikeys" class="tab-content">
+            <div class="card">
+                <h2>Generate API Key</h2>
+                <div class="form-group">
+                    <input type="text" id="keyName" placeholder="Key name (e.g., My App)">
+                    <button onclick="generateApiKey()">Generate Key</button>
+                </div>
+                <div id="newKeyDisplay"
+                    style="display:none; margin-top:15px; padding:15px; background:#f0f8ff; border-radius:8px;">
+                    <p style="margin:0 0 10px 0; font-weight:600;">⚠️ Save this key - it won't be shown again!</p>
+                    <code id="newKeyValue"
+                        style="display:block; padding:10px; background:white; border-radius:4px; word-break:break-all;"></code>
+                </div>
+            </div>
+            <div class="card">
+                <h2>API Keys</h2>
+                <div id="keysList" class="list"></div>
+                <button onclick="loadApiKeys()">Refresh</button>
+            </div>
+        </div>
 
-    <!-- Context Menu -->
-    <div id="contextMenu" class="context-menu" style="display:none;">
-        <div class="context-item" onclick="downloadItem()">📥 Download</div>
-        <div class="context-item" onclick="renameItem()">✏️ Rename</div>
-        <div class="context-item danger" onclick="deleteItem()">🗑️ Delete</div>
-    </div>
+        <div id="message" class="message"></div>
+
+        <!-- Context Menu -->
+        <div id="contextMenu" class="context-menu" style="display:none;">
+            <div class="context-item" onclick="downloadItem()">📥 Download</div>
+            <div class="context-item" onclick="renameItem()">✏️ Rename</div>
+            <div class="context-item danger" onclick="deleteItem()">🗑️ Delete</div>
+        </div>
     </div>
 
     <script src="app.js"></script>
+    <script>
+        // Register service worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker registered'))
+                    .catch(err => console.log('Service Worker registration failed'));
+            });
+        }
+    </script>
 </body>
 
 </html>
