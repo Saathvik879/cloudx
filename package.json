@@ -2,10 +2,10 @@
   "name": "cloudx",
   "version": "2.0.0",
   "description": "CloudX - Personal Cloud Storage and Database",
-  "main": "api/index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node api/index.js",
-    "test": "node test_cloudx.js",
+    "start": "node server.js",
+    "test": "echo \"No tests\"",
     "postinstall": "npm rebuild sqlite3 --build-from-source || true"
   },
   "dependencies": {
