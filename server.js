@@ -23,6 +23,7 @@ const databaseRouter = require('./services/database');
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/storage', storageRouter);
 app.use('/api/v1/database', databaseRouter);
+app.use('/api/v1/compute', require('./services/compute'));
 
 // Health check
 app.get('/health', (req, res) => {
