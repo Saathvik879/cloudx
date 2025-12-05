@@ -168,6 +168,67 @@ router.get('/buckets/:bucket/browse', (req, res) => {
   }
 });
 
+// Delete file or folder
+router.delete('/buckets/:bucket/items', (req, res) => {
+  const { bucket } = req.params;
+  const { path: itemPath } = req.body;
+
+  if (!metadata.buckets[bucket]) {
+    return res.status(404).json({ error: 'Bucket not found' });
+  }
+
+  if (!itemPath) {
+    return res.status(400).json({ error: 'Path required' });
+  }
+
+  const bucketPath = metadata.buckets[bucket].storagePath || path.join(storageDir, bucket);
+  const fullPath = path.join(bucketPath, itemPath);
+
+  if (!fs.existsSync(fullPath)) {
+    return res.status(404).json({ error: 'Item not found' });
+  }
+
+  try {
+    fs.removeSync(fullPath);
+    res.json({ message: 'Item deleted', path: itemPath });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Rename file or folder
+router.put('/buckets/:bucket/rename', (req, res) => {
+  const { bucket } = req.params;
+  const { oldPath, newPath } = req.body;
+
+  if (!metadata.buckets[bucket]) {
+    return res.status(404).json({ error: 'Bucket not found' });
+  }
+
+  if (!oldPath || !newPath) {
+    return res.status(400).json({ error: 'oldPath and newPath required' });
+  }
+
+  const bucketPath = metadata.buckets[bucket].storagePath || path.join(storageDir, bucket);
+  const fullOldPath = path.join(bucketPath, oldPath);
+  const fullNewPath = path.join(bucketPath, newPath);
+
+  if (!fs.existsSync(fullOldPath)) {
+    return res.status(404).json({ error: 'Item not found' });
+  }
+
+  if (fs.existsSync(fullNewPath)) {
+    return res.status(409).json({ error: 'Item with new name already exists' });
+  }
+
+  try {
+    fs.moveSync(fullOldPath, fullNewPath);
+    res.json({ message: 'Item renamed', oldPath, newPath });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // HDD Management Endpoints
 const diskManager = require('./disk-manager');
 
