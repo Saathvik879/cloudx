@@ -909,22 +909,6 @@
         }
 
         function uploadFileDialog() {
-            document.getElementById('fileUpload').click();
-        }
-
-        async function uploadFile() {
-            if (!currentBucket) return showMsg('Select bucket first', 'error');
-            const files = document.getElementById('fileUpload').files;
-            for (let file of files) {
-                const formData = new FormData();
-                formData.append('file', file);
-                try {
-                    await fetch(`${API_BASE}/storage/${currentBucket}/upload`, { method: 'POST', headers: { 'X-API-Key': authToken }, body: formData });
-                    showMsg(`✅ ${file.name} uploaded`);
-                } catch (err) {
-                    showMsg(`Error uploading ${file.name}`, 'error');
-                }
-            }
             loadFiles();
         }
 

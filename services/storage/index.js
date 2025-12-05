@@ -399,4 +399,35 @@ router.delete('/:bucket/files/:filename', requireAuth, (req, res) => {
   }
 });
 
+// DEBUG: List all files in storage (Admin only)
+router.get('/debug/tree', requireAuth, (req, res) => {
+  try {
+    if (!req.isAdmin) return res.status(403).json({ error: 'Admin only' });
+
+    const tree = {};
+    function readDir(dir, obj) {
+      if (!fs.existsSync(dir)) return;
+      const items = fs.readdirSync(dir);
+      items.forEach(item => {
+        const fullPath = path.join(dir, item);
+        const stats = fs.statSync(fullPath);
+        if (stats.isDirectory()) {
+          obj[item] = {};
+          readDir(fullPath, obj[item]);
+        } else {
+          obj[item] = `${(stats.size / 1024).toFixed(2)} KB`;
+        }
+      });
+    }
+
+    readDir(STORAGE_PATH, tree);
+    res.json({
+      storagePath: STORAGE_PATH,
+      tree
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
