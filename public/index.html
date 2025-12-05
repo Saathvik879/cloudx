@@ -12,13 +12,13 @@
     <div class="container">
         <header>
             <h1>☁️ CloudX Dashboard</h1>
-            <p class="subtitle">Cloud Provider Simulation</p>
+            <p class="subtitle">Production Cloud Provider</p>
         </header>
 
         <div class="tabs">
             <button class="tab active" onclick="showTab('storage')">Storage</button>
             <button class="tab" onclick="showTab('database')">Database</button>
-            <parameter name="tab" onclick="showTab('apikeys')">API Keys</button>
+            <button class="tab" onclick="showTab('apikeys')">API Keys</button>
         </div>
 
         <!-- Storage Tab -->
@@ -60,21 +60,25 @@
             </div>
         </div>
 
-        <!-- Compute Tab -->
-        <div id="compute" class="tab-content">
+        <!-- API Keys Tab -->
+        <div id="apikeys" class="tab-content">
             <div class="card">
-                <h2>Deploy Service</h2>
+                <h2>Generate API Key</h2>
                 <div class="form-group">
-                    <input type="text" id="serviceName" placeholder="Service name">
-                    <input type="text" id="serviceSource" placeholder="Source path">
-                    <input type="text" id="serviceRuntime" placeholder="Runtime (e.g., nodejs)">
-                    <button onclick="deployService()">Deploy Service</button>
+                    <input type="text" id="keyName" placeholder="Key name (e.g., My App)">
+                    <button onclick="generateApiKey()">Generate Key</button>
+                </div>
+                <div id="newKeyDisplay"
+                    style="display:none; margin-top:15px; padding:15px; background:#f0f8ff; border-radius:8px;">
+                    <p style="margin:0 0 10px 0; font-weight:600;">⚠️ Save this key - it won't be shown again!</p>
+                    <code id="newKeyValue"
+                        style="display:block; padding:10px; background:white; border-radius:4px; word-break:break-all;"></code>
                 </div>
             </div>
             <div class="card">
-                <h2>Services</h2>
-                <div id="servicesList" class="list"></div>
-                <button onclick="loadServices()">Refresh</button>
+                <h2>API Keys</h2>
+                <div id="keysList" class="list"></div>
+                <button onclick="loadApiKeys()">Refresh</button>
             </div>
         </div>
 

@@ -122,59 +122,57 @@ async function loadDatabases() {
     }
 }
 
-// Compute Functions
-async function deployService() {
-    const name = document.getElementById('serviceName').value;
-    const source = document.getElementById('serviceSource').value;
-    const runtime = document.getElementById('serviceRuntime').value;
+// API Key Functions
+async function generateApiKey() {
+    const name = document.getElementById('keyName').value;
 
-    if (!name || !source || !runtime) {
-        showMessage('Please fill all fields', 'error');
+    if (!name) {
+        showMessage('Please enter a key name', 'error');
         return;
     }
 
     try {
-        const res = await fetch(`${API_URL}/api/v1/compute/services`, {
+        const res = await fetch(`${API_URL}/api/v1/auth/keys`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, source, runtime })
+            body: JSON.stringify({ name })
         });
 
         const data = await res.json();
         if (res.ok) {
-            showMessage(`Service '${name}' deployed successfully!`);
-            document.getElementById('serviceName').value = '';
-            document.getElementById('serviceSource').value = '';
-            document.getElementById('serviceRuntime').value = '';
-            loadServices();
+            document.getElementById('newKeyValue').textContent = data.key;
+            document.getElementById('newKeyDisplay').style.display = 'block';
+            document.getElementById('keyName').value = '';
+            showMessage(`API key '${name}' generated successfully!`);
+            loadApiKeys();
         } else {
-            showMessage(data.error || 'Failed to deploy service', 'error');
+            showMessage(data.error || 'Failed to generate API key', 'error');
         }
     } catch (err) {
         showMessage('Error: ' + err.message, 'error');
     }
 }
 
-async function loadServices() {
+async function loadApiKeys() {
     try {
-        const res = await fetch(`${API_URL}/api/v1/compute/services`);
-        const services = await res.json();
+        const res = await fetch(`${API_URL}/api/v1/auth/keys`);
+        const keys = await res.json();
 
-        const list = document.getElementById('servicesList');
-        if (Object.keys(services).length === 0) {
-            list.innerHTML = '<div class="empty-state">No services yet. Deploy one above!</div>';
+        const list = document.getElementById('keysList');
+        if (keys.length === 0) {
+            list.innerHTML = '<div class="empty-state">No API keys yet. Generate one above!</div>';
             return;
         }
 
-        list.innerHTML = Object.entries(services).map(([name, info]) => `
+        list.innerHTML = keys.map(key => `
             <div class="list-item">
-                <h3>⚙️ ${name}</h3>
-                <p>Runtime: ${info.runtime} | Status: ${info.status} | URL: ${info.url}</p>
-                <p style="font-size: 0.8rem; color: #999;">Deployed: ${new Date(info.deployedAt).toLocaleString()}</p>
+                <h3>🔑 ${key.name}</h3>
+                <p>Key: ${key.keyPrefix} | Created: ${new Date(key.created).toLocaleString()}</p>
+                <p style="font-size: 0.85rem; color: #666;">Last used: ${key.lastUsed ? new Date(key.lastUsed).toLocaleString() : 'Never'}</p>
             </div>
         `).join('');
     } catch (err) {
-        showMessage('Error loading services: ' + err.message, 'error');
+        showMessage('Error loading API keys: ' + err.message, 'error');
     }
 }
 
@@ -182,5 +180,5 @@ async function loadServices() {
 window.addEventListener('load', () => {
     loadBuckets();
     loadDatabases();
-    loadServices();
+    loadApiKeys();
 });
