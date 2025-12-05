@@ -1,39 +1,53 @@
-const express = require('express');
-const router = express.Router();
+const fs = require('fs-extra');
+const path = require('path');
 
-// Master key for admin access (CHANGE THIS!)
+// Master key for admin access
 const MASTER_KEY = process.env.MASTER_KEY || 'cloudx-admin-2024-secure-key';
 
-// Middleware to check authentication
+// Load API keys
+const keysFile = path.join(__dirname, 'keys.json');
+let apiKeys = {};
+
+function loadKeys() {
+    if (fs.existsSync(keysFile)) {
+        apiKeys = fs.readJsonSync(keysFile);
+    }
+}
+
+loadKeys();
+
+// Middleware to require authentication
 function requireAuth(req, res, next) {
     const apiKey = req.headers['x-api-key'];
 
-    // Check if it's the master key (admin)
+    if (!apiKey) {
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Check if master key (admin)
     if (apiKey === MASTER_KEY) {
-        req.userType = 'admin';
+        req.userId = 'admin';
+        req.userEmail = 'admin@cloudx.local';
+        req.userName = 'Administrator';
         req.isAdmin = true;
         return next();
     }
 
-    // Check if it's a valid user API key
-    const keys = require('./keys.json');
-    const validKey = keys.apiKeys.find(k => k.key === apiKey && k.active);
+    // Reload keys to get latest
+    loadKeys();
 
-    if (validKey) {
-        req.userType = 'user';
-        req.isAdmin = false;
-        req.userId = validKey.userId;
-
-        // Track usage for billing (only for regular users)
-        validKey.usage = (validKey.usage || 0) + 1;
-        validKey.lastUsed = new Date().toISOString();
-        require('fs-extra').writeJsonSync(__dirname + '/keys.json', keys, { spaces: 2 });
-
-        return next();
+    // Check if valid API key
+    if (!apiKeys[apiKey]) {
+        return res.status(401).json({ error: 'Invalid API key' });
     }
 
-    // No valid authentication
-    return res.status(401).json({ error: 'Authentication required. Please provide a valid API key.' });
+    // Attach user info to request
+    req.userId = apiKeys[apiKey].userId || 'unknown';
+    req.userEmail = apiKeys[apiKey].email || 'unknown@cloudx.local';
+    req.userName = apiKeys[apiKey].name || 'User';
+    req.isAdmin = false;
+
+    next();
 }
 
 // Middleware for admin-only routes

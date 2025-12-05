@@ -51,13 +51,14 @@ router.get('/profile', (req, res) => {
 // Create API Key
 router.post('/keys', (req, res) => {
     const { name, userId, email } = req.body;
+    const requestUserId = req.userId || userId; // Use authenticated user's ID
 
     if (!name) {
         return res.status(400).json({ error: 'Name is required' });
     }
 
     const key = generateApiKey();
-    const generatedUserId = userId || 'user_' + Date.now();
+    const generatedUserId = requestUserId || 'user_' + Date.now();
 
     apiKeys[key] = {
         name,
@@ -81,13 +82,21 @@ router.post('/keys', (req, res) => {
 
 // List API Keys (without showing actual keys)
 router.get('/keys', (req, res) => {
-    const keysList = Object.entries(apiKeys).map(([key, data]) => ({
-        keyPrefix: key.substring(0, 10) + '...',
-        name: data.name,
-        permissions: data.permissions,
-        created: data.created,
-        lastUsed: data.lastUsed
-    }));
+    const requestUserId = req.userId || 'admin'; // From middleware
+
+    const keysList = Object.entries(apiKeys)
+        .filter(([key, data]) => {
+            // Admin sees all keys, users see only their own
+            if (requestUserId === 'admin') return true;
+            return data.userId === requestUserId;
+        })
+        .map(([key, data]) => ({
+            keyPrefix: key.substring(0, 10) + '...',
+            name: data.name,
+            permissions: data.permissions,
+            created: data.created,
+            lastUsed: data.lastUsed
+        }));
 
     res.json(keysList);
 });
