@@ -3,9 +3,12 @@ const path = require('path');
 const express = require('express');
 const multer = require('multer');
 const router = express.Router();
+const { requireAuth } = require('../auth/middleware');
+const diskManager = require('./disk-manager');
 
-const storageDir = path.join(__dirname, 'data');
-const metadataFile = path.join(__dirname, 'metadata.json');
+// Use HDD for storage (can be mounted/ejected)
+const storageDir = diskManager.getStoragePath();
+const metadataFile = path.join(storageDir, 'metadata.json');
 fs.ensureDirSync(storageDir);
 
 // Load metadata

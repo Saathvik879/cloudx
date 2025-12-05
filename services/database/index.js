@@ -4,9 +4,11 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs-extra');
 const { requireAuth } = require('../auth/middleware');
+const diskManager = require('../storage/disk-manager');
 
-const dataDir = path.join(__dirname, 'data');
-const metadataFile = path.join(__dirname, 'metadata.json');
+// Use HDD for database storage (can be mounted/ejected)
+const dataDir = diskManager.getDatabasePath();
+const metadataFile = path.join(dataDir, 'metadata.json');
 fs.ensureDirSync(dataDir);
 
 // Load metadata
