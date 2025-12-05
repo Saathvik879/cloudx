@@ -106,4 +106,55 @@ function validateApiKey(requiredPermission) {
     };
 }
 
+// Google Sign-In endpoint
+router.post('/google-signin', async (req, res) => {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+        return res.status(400).json({ error: 'ID token required' });
+    }
+
+    try {
+        // Note: In production, verify the token with Firebase Admin SDK
+        // For now, we'll create a simple implementation
+
+        // Extract user info from token (simplified - use firebase-admin in production)
+        const userId = 'google_' + Date.now(); // Replace with actual Firebase UID
+        const userEmail = 'user@example.com'; // Replace with actual email from token
+
+        // Check if user already has an API key
+        let existingKey = Object.keys(apiKeys).find(key =>
+            apiKeys[key].userId === userId
+        );
+
+        if (existingKey) {
+            return res.json({
+                apiKey: existingKey,
+                message: 'Welcome back!'
+            });
+        }
+
+        // Create new API key for user
+        const key = generateApiKey();
+        apiKeys[key] = {
+            name: `Google Account (${userEmail})`,
+            userId: userId,
+            email: userEmail,
+            permissions: ['database:read', 'database:write', 'storage:read', 'storage:write'],
+            created: new Date().toISOString(),
+            lastUsed: null
+        };
+
+        saveKeys();
+
+        res.json({
+            apiKey: key,
+            message: 'Account created successfully!'
+        });
+    } catch (error) {
+        console.error('Google sign-in error:', error);
+        res.status(500).json({ error: 'Authentication failed' });
+    }
+});
+
 module.exports = { router, validateApiKey };
