@@ -93,10 +93,40 @@ function getStoragePathForBucket(bucketName) {
     return path.join(drivePath, 'buckets', bucketName);
 }
 
+// Get storage path (with fallback)
+function getStoragePath() {
+    if (storageConfig.storagePool.length === 0) {
+        // Fallback to local storage if no drives configured
+        const fallback = path.join(__dirname, 'data');
+        fs.ensureDirSync(fallback);
+        return fallback;
+    }
+
+    const drivePath = getNextDrive();
+    return drivePath;
+}
+
+// Get database path (with fallback)
+function getDatabasePath() {
+    if (storageConfig.storagePool.length === 0) {
+        // Fallback to local storage if no drives configured
+        const fallback = path.join(__dirname, '../database/data');
+        fs.ensureDirSync(fallback);
+        return fallback;
+    }
+
+    const drive = storageConfig.storagePool[0];
+    const dbPath = path.join(drive.mountPath, 'cloudx-databases');
+    fs.ensureDirSync(dbPath);
+    return dbPath;
+}
+
 module.exports = {
     getAvailableDisks,
     addDriveToPool,
     removeDriveFromPool,
     getStoragePathForBucket,
+    getStoragePath,
+    getDatabasePath,
     getStoragePool: () => storageConfig.storagePool
 };
