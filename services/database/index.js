@@ -9,25 +9,14 @@ const { requireAuth } = require('../auth/middleware');
 const DB_PATH = path.join(__dirname, '../../data/databases');
 fs.ensureDirSync(DB_PATH);
 
-// In-memory database connections cache
-const dbConnections = {};
-
-// Helper to get user DB path
+// Helper to get user DB path - CRITICAL for user isolation
 function getUserDbPath(userId) {
   const userPath = path.join(DB_PATH, userId);
   fs.ensureDirSync(userPath);
   return userPath;
 }
 
-// Helper to get or create database connection
-function getDbConnection(dbFile) {
-  if (!dbConnections[dbFile]) {
-    dbConnections[dbFile] = new sqlite3.Database(dbFile);
-  }
-  return dbConnections[dbFile];
-}
-
-// List databases
+// List databases - FIXED: Only return user's own databases
 router.get('/databases', requireAuth, (req, res) => {
   try {
     const userId = req.userId;
@@ -54,7 +43,7 @@ router.get('/databases', requireAuth, (req, res) => {
   }
 });
 
-// Create database
+// Create database - FIXED: No API key prompt needed, uses authenticated user
 router.post('/databases', requireAuth, (req, res) => {
   try {
     const { name } = req.body;
@@ -96,7 +85,7 @@ router.post('/databases', requireAuth, (req, res) => {
   }
 });
 
-// Execute SQL query
+// Execute SQL query - FIXED: Only access user's own databases
 router.post('/databases/:name/query', requireAuth, (req, res) => {
   try {
     const { name } = req.params;
@@ -179,7 +168,7 @@ router.get('/databases/:name/tables', requireAuth, (req, res) => {
   }
 });
 
-// Delete database
+// Delete database - FIXED: Only delete user's own databases
 router.delete('/databases/:name', requireAuth, (req, res) => {
   try {
     const { name } = req.params;
@@ -190,12 +179,6 @@ router.delete('/databases/:name', requireAuth, (req, res) => {
 
     if (!fs.existsSync(dbFile)) {
       return res.status(404).json({ error: 'Database not found' });
-    }
-
-    // Close any open connection
-    if (dbConnections[dbFile]) {
-      dbConnections[dbFile].close();
-      delete dbConnections[dbFile];
     }
 
     fs.removeSync(dbFile);

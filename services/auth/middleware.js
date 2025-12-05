@@ -9,8 +9,13 @@ const keysFile = path.join(__dirname, 'keys.json');
 let apiKeys = {};
 
 function loadKeys() {
-    if (fs.existsSync(keysFile)) {
-        apiKeys = fs.readJsonSync(keysFile);
+    try {
+        if (fs.existsSync(keysFile)) {
+            apiKeys = fs.readJsonSync(keysFile);
+        }
+    } catch (err) {
+        console.error('Error loading keys:', err);
+        apiKeys = {};
     }
 }
 
@@ -21,7 +26,7 @@ function requireAuth(req, res, next) {
     const apiKey = req.headers['x-api-key'];
 
     if (!apiKey) {
-        return res.status(401).json({ error: 'Authentication required' });
+        return res.status(401).json({ error: 'Authentication required. Include X-API-Key header.' });
     }
 
     // Check if master key (admin)
@@ -41,11 +46,14 @@ function requireAuth(req, res, next) {
         return res.status(401).json({ error: 'Invalid API key' });
     }
 
-    // Attach user info to request
-    req.userId = apiKeys[apiKey].userId || 'unknown';
-    req.userEmail = apiKeys[apiKey].email || 'unknown@cloudx.local';
-    req.userName = apiKeys[apiKey].name || 'User';
+    const keyData = apiKeys[apiKey];
+
+    // Attach user info to request - CRITICAL for user isolation
+    req.userId = keyData.userId || 'unknown';
+    req.userEmail = keyData.email || 'unknown@cloudx.local';
+    req.userName = keyData.name || 'User';
     req.isAdmin = false;
+    req.keyData = keyData;
 
     next();
 }
@@ -58,4 +66,4 @@ function requireAdmin(req, res, next) {
     next();
 }
 
-module.exports = { requireAuth, requireAdmin, MASTER_KEY };
+module.exports = { requireAuth, requireAdmin, MASTER_KEY, loadKeys };

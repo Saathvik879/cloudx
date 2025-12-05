@@ -9,43 +9,38 @@ const { requireAuth } = require('../auth/middleware');
 const STORAGE_PATH = process.env.STORAGE_PATH || path.join(__dirname, 'data');
 fs.ensureDirSync(STORAGE_PATH);
 
-// In-memory bucket metadata
-let buckets = {};
+// Bucket metadata file - stores per-user bucket info
 const bucketsFile = path.join(STORAGE_PATH, 'buckets.json');
+let allBuckets = {};
 
 // Load existing buckets
 if (fs.existsSync(bucketsFile)) {
   try {
-    buckets = fs.readJsonSync(bucketsFile);
+    allBuckets = fs.readJsonSync(bucketsFile);
   } catch (err) {
     console.error('Error loading buckets:', err);
-    buckets = {};
+    allBuckets = {};
   }
 }
 
 function saveBuckets() {
   try {
-    fs.writeJsonSync(bucketsFile, buckets, { spaces: 2 });
+    fs.writeJsonSync(bucketsFile, allBuckets, { spaces: 2 });
   } catch (err) {
     console.error('Error saving buckets:', err);
   }
 }
 
 // Helper to get user-specific storage path
-function getUserPath(userId) {
+function getUserStoragePath(userId) {
   const userDir = path.join(STORAGE_PATH, 'users', userId);
   fs.ensureDirSync(userDir);
   return userDir;
 }
 
-// Helper to get bucket path
+// Helper to get bucket path for a specific user
 function getBucketPath(userId, bucketName) {
-  return path.join(getUserPath(userId), bucketName);
-}
-
-// Get bucket key
-function getBucketKey(userId, bucketName) {
-  return `${userId}:${bucketName}`;
+  return path.join(getUserStoragePath(userId), bucketName);
 }
 
 // Get storage stats
@@ -63,7 +58,6 @@ router.get('/stats', requireAuth, async (req, res) => {
       const disks = nodeDiskInfo.getDiskInfoSync();
 
       if (disks && disks.length > 0) {
-        // Find the disk where storage is located, or use first disk
         const storageDrive = STORAGE_PATH.charAt(0).toUpperCase();
         const disk = disks.find(d => d.mounted && d.mounted.startsWith(storageDrive)) || disks[0];
 
@@ -72,8 +66,7 @@ router.get('/stats', requireAuth, async (req, res) => {
             total: disk.blocks || disk.size || 1000000000000,
             used: disk.used || 0,
             available: disk.available || disk.blocks || 1000000000000,
-            capacity: disk.capacity || '0%',
-            mounted: disk.mounted || 'Unknown'
+            capacity: disk.capacity || '0%'
           };
         }
       }
@@ -88,7 +81,7 @@ router.get('/stats', requireAuth, async (req, res) => {
   }
 });
 
-// Create bucket
+// Create bucket - FIXED: Properly scoped to user
 router.post('/buckets', requireAuth, (req, res) => {
   try {
     const { name, region } = req.body;
@@ -98,23 +91,25 @@ router.post('/buckets', requireAuth, (req, res) => {
       return res.status(400).json({ error: 'Bucket name is required' });
     }
 
-    // Validate bucket name
     if (!/^[a-zA-Z0-9\-_]+$/.test(name)) {
       return res.status(400).json({ error: 'Bucket name can only contain letters, numbers, hyphens, and underscores' });
     }
 
-    const bucketKey = getBucketKey(userId, name);
+    // Initialize user's bucket object if not exists
+    if (!allBuckets[userId]) {
+      allBuckets[userId] = {};
+    }
 
-    if (buckets[bucketKey]) {
+    // Check if bucket already exists FOR THIS USER
+    if (allBuckets[userId][name]) {
       return res.status(400).json({ error: 'Bucket already exists' });
     }
 
     const bucketPath = getBucketPath(userId, name);
     fs.ensureDirSync(bucketPath);
 
-    buckets[bucketKey] = {
+    allBuckets[userId][name] = {
       name,
-      userId,
       region: region || 'default',
       created: new Date().toISOString(),
       path: bucketPath
@@ -126,8 +121,8 @@ router.post('/buckets', requireAuth, (req, res) => {
       message: 'Bucket created successfully',
       bucket: {
         name,
-        region: buckets[bucketKey].region,
-        created: buckets[bucketKey].created
+        region: allBuckets[userId][name].region,
+        created: allBuckets[userId][name].created
       }
     });
   } catch (err) {
@@ -136,22 +131,13 @@ router.post('/buckets', requireAuth, (req, res) => {
   }
 });
 
-// List buckets
+// List buckets - FIXED: Only return user's own buckets
 router.get('/buckets', requireAuth, (req, res) => {
   try {
     const userId = req.userId;
-    const userBuckets = {};
 
-    Object.keys(buckets).forEach(key => {
-      if (key.startsWith(`${userId}:`)) {
-        const bucketName = key.split(':')[1];
-        userBuckets[bucketName] = {
-          name: bucketName,
-          region: buckets[key].region,
-          created: buckets[key].created
-        };
-      }
-    });
+    // Return only the authenticated user's buckets
+    const userBuckets = allBuckets[userId] || {};
 
     res.json(userBuckets);
   } catch (err) {
@@ -165,18 +151,18 @@ router.delete('/buckets/:bucket', requireAuth, (req, res) => {
   try {
     const bucketName = req.params.bucket;
     const userId = req.userId;
-    const bucketKey = getBucketKey(userId, bucketName);
 
-    if (!buckets[bucketKey]) {
+    if (!allBuckets[userId] || !allBuckets[userId][bucketName]) {
       return res.status(404).json({ error: 'Bucket not found' });
     }
 
     // Remove bucket directory
-    if (fs.existsSync(buckets[bucketKey].path)) {
-      fs.removeSync(buckets[bucketKey].path);
+    const bucketPath = getBucketPath(userId, bucketName);
+    if (fs.existsSync(bucketPath)) {
+      fs.removeSync(bucketPath);
     }
 
-    delete buckets[bucketKey];
+    delete allBuckets[userId][bucketName];
     saveBuckets();
 
     res.json({ message: 'Bucket deleted successfully' });
@@ -192,9 +178,8 @@ router.post('/buckets/:bucket/folders', requireAuth, (req, res) => {
     const { folderPath } = req.body;
     const bucketName = req.params.bucket;
     const userId = req.userId;
-    const bucketKey = getBucketKey(userId, bucketName);
 
-    if (!buckets[bucketKey]) {
+    if (!allBuckets[userId] || !allBuckets[userId][bucketName]) {
       return res.status(404).json({ error: 'Bucket not found' });
     }
 
@@ -202,10 +187,11 @@ router.post('/buckets/:bucket/folders', requireAuth, (req, res) => {
       return res.status(400).json({ error: 'Folder path is required' });
     }
 
-    const fullPath = path.join(buckets[bucketKey].path, folderPath);
+    const bucketPath = getBucketPath(userId, bucketName);
+    const fullPath = path.join(bucketPath, folderPath);
 
     // Security: prevent directory traversal
-    if (!fullPath.startsWith(buckets[bucketKey].path)) {
+    if (!fullPath.startsWith(bucketPath)) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -218,22 +204,53 @@ router.post('/buckets/:bucket/folders', requireAuth, (req, res) => {
   }
 });
 
-// Browse bucket contents
+// Also support POST to /:bucket/folders for frontend compatibility
+router.post('/:bucket/folders', requireAuth, (req, res) => {
+  try {
+    const { folderPath } = req.body;
+    const bucketName = req.params.bucket;
+    const userId = req.userId;
+
+    if (!allBuckets[userId] || !allBuckets[userId][bucketName]) {
+      return res.status(404).json({ error: 'Bucket not found' });
+    }
+
+    if (!folderPath) {
+      return res.status(400).json({ error: 'Folder path is required' });
+    }
+
+    const bucketPath = getBucketPath(userId, bucketName);
+    const fullPath = path.join(bucketPath, folderPath);
+
+    if (!fullPath.startsWith(bucketPath)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    fs.ensureDirSync(fullPath);
+
+    res.json({ message: 'Folder created successfully', path: folderPath });
+  } catch (err) {
+    console.error('Error creating folder:', err);
+    res.status(500).json({ error: 'Failed to create folder' });
+  }
+});
+
+// Browse bucket contents - FIXED: Only access user's own buckets
 router.get('/buckets/:bucket/browse', requireAuth, (req, res) => {
   try {
     const bucketName = req.params.bucket;
     const folder = req.query.folder || '';
     const userId = req.userId;
-    const bucketKey = getBucketKey(userId, bucketName);
 
-    if (!buckets[bucketKey]) {
+    if (!allBuckets[userId] || !allBuckets[userId][bucketName]) {
       return res.status(404).json({ error: 'Bucket not found' });
     }
 
-    const browsePath = path.join(buckets[bucketKey].path, folder);
+    const bucketPath = getBucketPath(userId, bucketName);
+    const browsePath = path.join(bucketPath, folder);
 
     // Security: prevent directory traversal
-    if (!browsePath.startsWith(buckets[bucketKey].path)) {
+    if (!browsePath.startsWith(bucketPath)) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -269,17 +286,17 @@ const storage = multer.diskStorage({
     try {
       const bucketName = req.params.bucket;
       const userId = req.userId;
-      const bucketKey = getBucketKey(userId, bucketName);
 
-      if (!buckets[bucketKey]) {
+      if (!allBuckets[userId] || !allBuckets[userId][bucketName]) {
         return cb(new Error('Bucket not found'));
       }
 
       const folder = req.body.folder || '';
-      const uploadPath = path.join(buckets[bucketKey].path, folder);
+      const bucketPath = getBucketPath(userId, bucketName);
+      const uploadPath = path.join(bucketPath, folder);
 
       // Security check
-      if (!uploadPath.startsWith(buckets[bucketKey].path)) {
+      if (!uploadPath.startsWith(bucketPath)) {
         return cb(new Error('Access denied'));
       }
 
@@ -326,16 +343,16 @@ router.get('/:bucket/download/:filename', requireAuth, (req, res) => {
     const filename = req.params.filename;
     const folder = req.query.folder || '';
     const userId = req.userId;
-    const bucketKey = getBucketKey(userId, bucketName);
 
-    if (!buckets[bucketKey]) {
+    if (!allBuckets[userId] || !allBuckets[userId][bucketName]) {
       return res.status(404).json({ error: 'Bucket not found' });
     }
 
-    const filePath = path.join(buckets[bucketKey].path, folder, filename);
+    const bucketPath = getBucketPath(userId, bucketName);
+    const filePath = path.join(bucketPath, folder, filename);
 
     // Security: prevent directory traversal
-    if (!filePath.startsWith(buckets[bucketKey].path)) {
+    if (!filePath.startsWith(bucketPath)) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -350,38 +367,35 @@ router.get('/:bucket/download/:filename', requireAuth, (req, res) => {
   }
 });
 
-// Delete file or folder
-router.delete('/:bucket/items', requireAuth, (req, res) => {
+// Delete file
+router.delete('/:bucket/files/:filename', requireAuth, (req, res) => {
   try {
     const bucketName = req.params.bucket;
-    const { path: itemPath } = req.body;
+    const filename = req.params.filename;
+    const folder = req.query.folder || '';
     const userId = req.userId;
-    const bucketKey = getBucketKey(userId, bucketName);
 
-    if (!buckets[bucketKey]) {
+    if (!allBuckets[userId] || !allBuckets[userId][bucketName]) {
       return res.status(404).json({ error: 'Bucket not found' });
     }
 
-    if (!itemPath) {
-      return res.status(400).json({ error: 'Item path is required' });
-    }
-
-    const fullPath = path.join(buckets[bucketKey].path, itemPath);
+    const bucketPath = getBucketPath(userId, bucketName);
+    const filePath = path.join(bucketPath, folder, filename);
 
     // Security: prevent directory traversal
-    if (!fullPath.startsWith(buckets[bucketKey].path)) {
+    if (!filePath.startsWith(bucketPath)) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    if (!fs.existsSync(fullPath)) {
-      return res.status(404).json({ error: 'Item not found' });
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File not found' });
     }
 
-    fs.removeSync(fullPath);
-    res.json({ message: 'Item deleted successfully' });
+    fs.removeSync(filePath);
+    res.json({ message: 'File deleted successfully' });
   } catch (err) {
-    console.error('Error deleting item:', err);
-    res.status(500).json({ error: 'Failed to delete item' });
+    console.error('Error deleting file:', err);
+    res.status(500).json({ error: 'Failed to delete file' });
   }
 });
 
