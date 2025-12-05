@@ -233,7 +233,6 @@ router.put('/buckets/:bucket/rename', (req, res) => {
 });
 
 // HDD Management Endpoints
-const diskManager = require('./disk-manager');
 
 // Get available disks
 router.get('/admin/disks', (req, res) => {
