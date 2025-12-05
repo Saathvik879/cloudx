@@ -3,6 +3,7 @@ const sqlite3 = require('sqlite3').verbose();
 const router = express.Router();
 const path = require('path');
 const fs = require('fs-extra');
+const { requireAuth } = require('../auth/middleware');
 
 const dataDir = path.join(__dirname, 'data');
 const metadataFile = path.join(__dirname, 'metadata.json');
@@ -15,6 +16,9 @@ if (fs.existsSync(metadataFile)) {
 } else {
   fs.writeJsonSync(metadataFile, metadata);
 }
+
+// Apply authentication to all database routes
+router.use(requireAuth);
 
 function saveMetadata() {
   fs.writeJsonSync(metadataFile, metadata, { spaces: 2 });
