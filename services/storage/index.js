@@ -85,4 +85,45 @@ router.get('/:bucket/:filename', (req, res) => {
   }
 });
 
+// HDD Management Endpoints
+const diskManager = require('./disk-manager');
+
+// Get available disks
+router.get('/admin/disks', (req, res) => {
+  try {
+    const disks = diskManager.getAvailableDisks();
+    const pool = diskManager.getStoragePool();
+    res.json({ availableDisks: disks, storagePool: pool });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Add disk to storage pool
+router.post('/admin/disks', (req, res) => {
+  const { mountPath } = req.body;
+  if (!mountPath) {
+    return res.status(400).json({ error: 'mountPath required' });
+  }
+
+  try {
+    const storagePath = diskManager.addDriveToPool(mountPath);
+    res.json({ message: 'Drive added to storage pool', storagePath });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Remove disk from storage pool
+router.delete('/admin/disks/:mountPath', (req, res) => {
+  const mountPath = decodeURIComponent(req.params.mountPath);
+
+  try {
+    diskManager.removeDriveFromPool(mountPath);
+    res.json({ message: 'Drive removed from storage pool' });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 module.exports = router;

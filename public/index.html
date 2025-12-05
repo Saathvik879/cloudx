@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CloudX Dashboard</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -16,7 +18,7 @@
         <div class="tabs">
             <button class="tab active" onclick="showTab('storage')">Storage</button>
             <button class="tab" onclick="showTab('database')">Database</button>
-            <button class="tab" onclick="showTab('compute')">Compute</button>
+            <parameter name="tab" onclick="showTab('apikeys')">API Keys</button>
         </div>
 
         <!-- Storage Tab -->
@@ -81,4 +83,5 @@
 
     <script src="app.js"></script>
 </body>
+
 </html>
