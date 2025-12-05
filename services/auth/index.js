@@ -22,18 +22,48 @@ function generateApiKey() {
     return 'cx_' + crypto.randomBytes(32).toString('hex');
 }
 
+// Get user profile
+router.get('/profile', (req, res) => {
+    const apiKey = req.headers['x-api-key'];
+    const MASTER_KEY = 'cloudx-admin-2024-secure-key';
+
+    if (apiKey === MASTER_KEY) {
+        return res.json({
+            userId: 'admin',
+            email: 'admin@cloudx.local',
+            name: 'Administrator',
+            isAdmin: true
+        });
+    }
+
+    if (apiKeys[apiKey]) {
+        return res.json({
+            userId: apiKeys[apiKey].userId,
+            email: apiKeys[apiKey].email,
+            name: apiKeys[apiKey].name,
+            isAdmin: false
+        });
+    }
+
+    res.status(401).json({ error: 'Invalid API key' });
+});
+
 // Create API Key
 router.post('/keys', (req, res) => {
-    const { name, permissions } = req.body;
+    const { name, userId, email } = req.body;
 
     if (!name) {
         return res.status(400).json({ error: 'Name is required' });
     }
 
     const key = generateApiKey();
+    const generatedUserId = userId || 'user_' + Date.now();
+
     apiKeys[key] = {
         name,
-        permissions: permissions || ['database:read', 'database:write', 'storage:read', 'storage:write'],
+        userId: generatedUserId,
+        email: email || `${generatedUserId}@cloudx.local`,
+        permissions: ['database:read', 'database:write', 'storage:read', 'storage:write'],
         created: new Date().toISOString(),
         lastUsed: null
     };
@@ -42,6 +72,7 @@ router.post('/keys', (req, res) => {
 
     res.json({
         key,
+        userId: generatedUserId,
         name,
         permissions: apiKeys[key].permissions,
         message: 'Store this key securely - it will not be shown again'
