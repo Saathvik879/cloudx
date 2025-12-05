@@ -400,6 +400,12 @@
                     body: JSON.stringify({ idToken })
                 });
 
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    console.error('Backend error:', errorText);
+                    throw new Error('Backend authentication failed');
+                }
+
                 const data = await res.json();
                 localStorage.setItem('cloudx_auth', data.apiKey);
                 window.auth = data.apiKey;
@@ -409,7 +415,8 @@
                 loadDatabases();
                 loadKeys();
             } catch (error) {
-                showMsg('❌ Google login failed', 'error');
+                console.error('Google login error:', error);
+                showMsg('❌ Google login failed: ' + error.message, 'error');
             }
         };
     </script>
