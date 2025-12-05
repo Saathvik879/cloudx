@@ -1,109 +1,83 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
 const router = express.Router();
+const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs-extra');
 const { requireAuth } = require('../auth/middleware');
-const diskManager = require('../storage/disk-manager');
 
-// Use HDD for database storage (can be mounted/ejected)
-const dataDir = diskManager.getDatabasePath();
-const metadataFile = path.join(dataDir, 'metadata.json');
-fs.ensureDirSync(dataDir);
+// Database storage path
+const DB_PATH = path.join(__dirname, '../../data/databases');
+fs.ensureDirSync(DB_PATH);
 
-// Load metadata
-let metadata = { databases: {} };
-if (fs.existsSync(metadataFile)) {
-  metadata = fs.readJsonSync(metadataFile);
-} else {
-  fs.writeJsonSync(metadataFile, metadata);
+// In-memory database connections
+const dbs = {};
+
+// Helper to get user DB path
+function getUserDbPath(userId) {
+  const userPath = path.join(DB_PATH, userId);
+  fs.ensureDirSync(userPath);
+  return userPath;
 }
 
-// Apply authentication to all database routes
-router.use(requireAuth);
+// List databases
+router.get('/databases', requireAuth, (req, res) => {
+  const userId = req.userId;
+  const userPath = getUserDbPath(userId);
 
-function saveMetadata() {
-  fs.writeJsonSync(metadataFile, metadata, { spaces: 2 });
-}
+  const files = fs.readdirSync(userPath).filter(f => f.endsWith('.db'));
+  const databases = {};
 
-// Helper to get DB connection
-const dbConnections = {};
-function getDb(name) {
-  if (!dbConnections[name]) {
-    const dbPath = path.join(dataDir, `${name}.db`);
-    dbConnections[name] = new sqlite3.Database(dbPath);
-    // Initialize default table for simulation
-    dbConnections[name].serialize(() => {
-      dbConnections[name].run("CREATE TABLE IF NOT EXISTS data (id INTEGER PRIMARY KEY AUTOINCREMENT, collection TEXT, data TEXT)");
-    });
-  }
-  return dbConnections[name];
-}
-
-// Create Database
-router.post('/databases', (req, res) => {
-  const { name, engine, size } = req.body;
-  if (!name) return res.status(400).json({ error: 'Database name required' });
-
-  if (metadata.databases[name]) {
-    return res.status(409).json({ error: 'Database already exists' });
-  }
-
-  metadata.databases[name] = {
-    engine: engine || 'sqlite',
-    size: size || 'small',
-    created: new Date().toISOString()
-  };
-  saveMetadata();
-
-  // Initialize the DB file
-  getDb(name);
-
-  res.json({ name, ...metadata.databases[name], status: 'created' });
-});
-
-// List Databases
-router.get('/databases', (req, res) => {
-  res.json(metadata.databases);
-});
-
-// Create/Insert Data
-router.post('/:dbname/:collection', (req, res) => {
-  const dbName = req.params.dbname;
-  if (!metadata.databases[dbName]) {
-    return res.status(404).json({ error: 'Database not found' });
-  }
-
-  const collection = req.params.collection;
-  const data = JSON.stringify(req.body);
-  const db = getDb(dbName);
-
-  const stmt = db.prepare("INSERT INTO data (collection, data) VALUES (?, ?)");
-  stmt.run(collection, data, function (err) {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    res.json({ id: this.lastID, status: 'created' });
+  files.forEach(f => {
+    databases[f.replace('.db', '')] = {
+      engine: 'sqlite',
+      created: fs.statSync(path.join(userPath, f)).birthtime
+    };
   });
-  stmt.finalize();
+
+  res.json(databases);
 });
 
-// Read Data
-router.get('/:dbname/:collection', (req, res) => {
-  const dbName = req.params.dbname;
-  if (!metadata.databases[dbName]) {
+// Create database
+router.post('/databases', requireAuth, (req, res) => {
+  const { name } = req.body;
+  const userId = req.userId;
+
+  if (!name) return res.status(400).json({ error: 'Name required' });
+
+  const userPath = getUserDbPath(userId);
+  const dbFile = path.join(userPath, `${name}.db`);
+
+  if (fs.existsSync(dbFile)) {
+    return res.status(400).json({ error: 'Database exists' });
+  }
+
+  new sqlite3.Database(dbFile, (err) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'Database created' });
+  });
+});
+
+// Execute SQL
+router.post('/databases/:name/query', requireAuth, (req, res) => {
+  const { name } = req.params;
+  const { query } = req.body;
+  const userId = req.userId;
+
+  if (!query) return res.status(400).json({ error: 'Query required' });
+
+  const userPath = getUserDbPath(userId);
+  const dbFile = path.join(userPath, `${name}.db`);
+
+  if (!fs.existsSync(dbFile)) {
     return res.status(404).json({ error: 'Database not found' });
   }
 
-  const collection = req.params.collection;
-  const db = getDb(dbName);
+  const db = new sqlite3.Database(dbFile);
 
-  db.all("SELECT * FROM data WHERE collection = ?", [collection], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    const results = rows.map(row => ({ id: row.id, data: JSON.parse(row.data) }));
-    res.json(results);
+  db.all(query, [], (err, rows) => {
+    db.close();
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ results: rows });
   });
 });
 

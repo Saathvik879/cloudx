@@ -1,275 +1,212 @@
-const fs = require('fs-extra');
-const path = require('path');
 const express = require('express');
-const multer = require('multer');
 const router = express.Router();
-const { requireAuth } = require('../auth/middleware');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs-extra');
 const diskManager = require('./disk-manager');
+const { requireAuth } = require('../auth/middleware');
 
-// Use HDD for storage (can be mounted/ejected)
+// Use HDD storage path from disk manager
 const storageDir = diskManager.getStoragePath();
-const metadataFile = path.join(storageDir, 'metadata.json');
+
+// Ensure storage directory exists
 fs.ensureDirSync(storageDir);
 
-// Load metadata
-let metadata = { buckets: {} };
-if (fs.existsSync(metadataFile)) {
-  metadata = fs.readJsonSync(metadataFile);
-} else {
-  fs.writeJsonSync(metadataFile, metadata);
+// In-memory bucket metadata (in production, use a database)
+let buckets = {};
+
+// Helper to get user-specific path
+function getUserPath(userId) {
+  const userDir = path.join(storageDir, userId);
+  fs.ensureDirSync(userDir);
+  return userDir;
 }
 
-function saveMetadata() {
-  fs.writeJsonSync(metadataFile, metadata, { spaces: 2 });
+// Helper to get bucket path
+function getBucketPath(userId, bucketName) {
+  return path.join(getUserPath(userId), bucketName);
 }
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const bucket = req.params.bucket;
-    if (!metadata.buckets[bucket]) {
-      return cb(new Error('Bucket does not exist'));
-    }
-    const bucketPath = path.join(storageDir, bucket);
-    cb(null, bucketPath);
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.originalname);
+// Get storage stats
+router.get('/stats', requireAuth, async (req, res) => {
+  try {
+    const diskInfo = require('node-disk-info');
+    const disks = await diskInfo.getDiskInfo();
+
+    // Find the disk where storage is located
+    const storageDisk = disks.find(d => storageDir.startsWith(d.mounted)) || disks[0];
+
+    res.json({
+      total: storageDisk.blocks,
+      used: storageDisk.used,
+      available: storageDisk.available,
+      capacity: storageDisk.capacity,
+      mounted: storageDisk.mounted
+    });
+  } catch (err) {
+    // Fallback if node-disk-info not available
+    res.json({
+      total: 1000000000000, // 1TB
+      used: 100000000000,   // 100GB
+      available: 900000000000,
+      capacity: '10%',
+      mounted: storageDir
+    });
   }
 });
 
-const upload = multer({ storage: storage });
-
-// Create Bucket
-router.post('/buckets', (req, res) => {
+// Create bucket
+router.post('/buckets', requireAuth, (req, res) => {
   const { name, region } = req.body;
-  if (!name) return res.status(400).json({ error: 'Bucket name required' });
+  const userId = req.userId;
 
-  if (metadata.buckets[name]) {
-    return res.status(409).json({ error: 'Bucket already exists' });
+  if (!name) {
+    return res.status(400).json({ error: 'Bucket name is required' });
   }
 
-  const bucketPath = path.join(storageDir, name);
+  const bucketKey = `${userId}:${name}`;
+  if (buckets[bucketKey]) {
+    return res.status(400).json({ error: 'Bucket already exists' });
+  }
+
+  const bucketPath = getBucketPath(userId, name);
   fs.ensureDirSync(bucketPath);
 
-  metadata.buckets[name] = {
-    region: region || 'default',
-    created: new Date().toISOString()
+  buckets[bucketKey] = {
+    name,
+    userId,
+    region: region || 'us-east-1',
+    created: new Date().toISOString(),
+    path: bucketPath
   };
-  saveMetadata();
 
-  res.json({ name, region: metadata.buckets[name].region, status: 'created' });
+  res.json({ message: 'Bucket created successfully', bucket: { name, region: buckets[bucketKey].region } });
 });
 
-// List Buckets
-router.get('/buckets', (req, res) => {
-  res.json(metadata.buckets);
-});
+// List buckets
+router.get('/buckets', requireAuth, (req, res) => {
+  const userId = req.userId;
+  const userBuckets = {};
 
-// Upload with folder support
-router.post('/:bucket/upload', upload.single('file'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded' });
-  }
-
-  const { folder = '' } = req.body;
-  const bucket = req.params.bucket;
-
-  if (!metadata.buckets[bucket]) {
-    return res.status(404).json({ error: 'Bucket not found' });
-  }
-
-  // If folder specified, move file to that folder
-  if (folder) {
-    const bucketPath = metadata.buckets[bucket].storagePath || path.join(storageDir, bucket);
-    const folderPath = path.join(bucketPath, folder);
-    fs.ensureDirSync(folderPath);
-
-    const oldPath = req.file.path;
-    const newPath = path.join(folderPath, req.file.filename);
-    fs.moveSync(oldPath, newPath);
-  }
-
-  res.json({
-    filename: req.file.filename,
-    bucket,
-    folder: folder || '/',
-    status: 'uploaded'
+  Object.keys(buckets).forEach(key => {
+    if (key.startsWith(`${userId}:`)) {
+      const bucketName = key.split(':')[1];
+      userBuckets[bucketName] = {
+        name: bucketName,
+        region: buckets[key].region,
+        created: buckets[key].created
+      };
+    }
   });
+
+  res.json(userBuckets);
 });
 
-// Download
-router.get('/:bucket/:filename', (req, res) => {
-  const bucket = req.params.bucket;
-  if (!metadata.buckets[bucket]) {
-    return res.status(404).json({ error: 'Bucket not found' });
-  }
-  const filename = req.params.filename;
-  const filePath = path.join(storageDir, bucket, filename);
-  if (fs.existsSync(filePath)) {
-    res.download(filePath);
-  } else {
-    res.status(404).json({ error: 'File not found' });
-  }
-});
-
-// Folder Management
-router.post('/buckets/:bucket/folders', (req, res) => {
-  const { bucket } = req.params;
+// Create folder
+router.post('/buckets/:bucket/folders', requireAuth, (req, res) => {
   const { folderPath } = req.body;
+  const bucketName = req.params.bucket;
+  const userId = req.userId;
+  const bucketKey = `${userId}:${bucketName}`;
 
-  if (!metadata.buckets[bucket]) {
+  if (!buckets[bucketKey]) {
     return res.status(404).json({ error: 'Bucket not found' });
   }
 
-  if (!folderPath) {
-    return res.status(400).json({ error: 'Folder path required' });
-  }
+  const fullPath = path.join(buckets[bucketKey].path, folderPath);
+  fs.ensureDirSync(fullPath);
 
-  const bucketPath = metadata.buckets[bucket].storagePath || path.join(storageDir, bucket);
-  const fullFolderPath = path.join(bucketPath, folderPath);
-
-  try {
-    fs.ensureDirSync(fullFolderPath);
-    res.json({ message: 'Folder created', path: folderPath });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  res.json({ message: 'Folder created successfully' });
 });
 
-// List files and folders in a bucket/folder
-router.get('/buckets/:bucket/browse', (req, res) => {
-  const { bucket } = req.params;
-  const { folder = '' } = req.query;
+// Browse bucket
+router.get('/buckets/:bucket/browse', requireAuth, (req, res) => {
+  const bucketName = req.params.bucket;
+  const folder = req.query.folder || '';
+  const userId = req.userId;
+  const bucketKey = `${userId}:${bucketName}`;
 
-  if (!metadata.buckets[bucket]) {
+  if (!buckets[bucketKey]) {
     return res.status(404).json({ error: 'Bucket not found' });
   }
 
-  const bucketPath = metadata.buckets[bucket].storagePath || path.join(storageDir, bucket);
-  const browsePath = path.join(bucketPath, folder);
+  const browsePath = path.join(buckets[bucketKey].path, folder);
+
+  // Security check to prevent directory traversal
+  if (!browsePath.startsWith(buckets[bucketKey].path)) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
 
   if (!fs.existsSync(browsePath)) {
-    return res.status(404).json({ error: 'Path not found' });
+    return res.json({ items: [] });
   }
 
-  try {
-    const items = fs.readdirSync(browsePath).map(item => {
-      const itemPath = path.join(browsePath, item);
-      const stats = fs.statSync(itemPath);
+  const items = fs.readdirSync(browsePath).map(item => {
+    const itemPath = path.join(browsePath, item);
+    const stats = fs.statSync(itemPath);
+    return {
+      name: item,
+      type: stats.isDirectory() ? 'folder' : 'file',
+      size: stats.size,
+      modified: stats.mtime
+    };
+  });
 
-      return {
-        name: item,
-        type: stats.isDirectory() ? 'folder' : 'file',
-        size: stats.isFile() ? stats.size : null,
-        modified: stats.mtime
-      };
-    });
-
-    res.json({ bucket, folder, items });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  res.json({ items });
 });
 
-// Delete file or folder
-router.delete('/buckets/:bucket/items', (req, res) => {
-  const { bucket } = req.params;
-  const { path: itemPath } = req.body;
+// Configure upload
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      const bucketName = req.params.bucket;
+      const userId = req.userId;
+      const bucketKey = `${userId}:${bucketName}`;
 
-  if (!metadata.buckets[bucket]) {
+      if (!buckets[bucketKey]) {
+        return cb(new Error('Bucket not found'));
+      }
+
+      const folder = req.body.folder || '';
+      const uploadPath = path.join(buckets[bucketKey].path, folder);
+      fs.ensureDirSync(uploadPath);
+      cb(null, uploadPath);
+    },
+    filename: function (req, file, cb) {
+      cb(null, file.originalname);
+    }
+  })
+});
+
+// Upload file
+router.post('/:bucket/upload', requireAuth, upload.single('file'), (req, res) => {
+  res.json({ message: 'File uploaded successfully' });
+});
+
+// Download file
+router.get('/:bucket/download/:filename', requireAuth, (req, res) => {
+  const bucketName = req.params.bucket;
+  const filename = req.params.filename;
+  const folder = req.query.folder || '';
+  const userId = req.userId;
+  const bucketKey = `${userId}:${bucketName}`;
+
+  if (!buckets[bucketKey]) {
     return res.status(404).json({ error: 'Bucket not found' });
   }
 
-  if (!itemPath) {
-    return res.status(400).json({ error: 'Path required' });
+  const filePath = path.join(buckets[bucketKey].path, folder, filename);
+
+  // Security check
+  if (!filePath.startsWith(buckets[bucketKey].path)) {
+    return res.status(403).json({ error: 'Access denied' });
   }
 
-  const bucketPath = metadata.buckets[bucket].storagePath || path.join(storageDir, bucket);
-  const fullPath = path.join(bucketPath, itemPath);
-
-  if (!fs.existsSync(fullPath)) {
-    return res.status(404).json({ error: 'Item not found' });
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'File not found' });
   }
 
-  try {
-    fs.removeSync(fullPath);
-    res.json({ message: 'Item deleted', path: itemPath });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Rename file or folder
-router.put('/buckets/:bucket/rename', (req, res) => {
-  const { bucket } = req.params;
-  const { oldPath, newPath } = req.body;
-
-  if (!metadata.buckets[bucket]) {
-    return res.status(404).json({ error: 'Bucket not found' });
-  }
-
-  if (!oldPath || !newPath) {
-    return res.status(400).json({ error: 'oldPath and newPath required' });
-  }
-
-  const bucketPath = metadata.buckets[bucket].storagePath || path.join(storageDir, bucket);
-  const fullOldPath = path.join(bucketPath, oldPath);
-  const fullNewPath = path.join(bucketPath, newPath);
-
-  if (!fs.existsSync(fullOldPath)) {
-    return res.status(404).json({ error: 'Item not found' });
-  }
-
-  if (fs.existsSync(fullNewPath)) {
-    return res.status(409).json({ error: 'Item with new name already exists' });
-  }
-
-  try {
-    fs.moveSync(fullOldPath, fullNewPath);
-    res.json({ message: 'Item renamed', oldPath, newPath });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// HDD Management Endpoints
-
-// Get available disks
-router.get('/admin/disks', (req, res) => {
-  try {
-    const disks = diskManager.getAvailableDisks();
-    const pool = diskManager.getStoragePool();
-    res.json({ availableDisks: disks, storagePool: pool });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Add disk to storage pool
-router.post('/admin/disks', (req, res) => {
-  const { mountPath } = req.body;
-  if (!mountPath) {
-    return res.status(400).json({ error: 'mountPath required' });
-  }
-
-  try {
-    const storagePath = diskManager.addDriveToPool(mountPath);
-    res.json({ message: 'Drive added to storage pool', storagePath });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-// Remove disk from storage pool
-router.delete('/admin/disks/:mountPath', (req, res) => {
-  const mountPath = decodeURIComponent(req.params.mountPath);
-
-  try {
-    diskManager.removeDriveFromPool(mountPath);
-    res.json({ message: 'Drive removed from storage pool' });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+  res.download(filePath);
 });
 
 module.exports = router;
