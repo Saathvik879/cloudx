@@ -1,6 +1,5 @@
 {
   "projects": {
-    "default": "cloudx-api",
-    "cloudx-api": "cloudx-api"
+    "default": "cloudx-e928c"
   }
 }
