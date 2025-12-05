@@ -1,15 +1,26 @@
-// Firebase configuration
-// To use: Create a Firebase project at https://console.firebase.google.com
-// Enable Google Sign-In in Authentication
-// Add your config here
+const admin = require('firebase-admin');
 
+// Firebase configuration
 const firebaseConfig = {
-    apiKey: process.env.FIREBASE_API_KEY || "YOUR_API_KEY",
-    authDomain: process.env.FIREBASE_AUTH_DOMAIN || "cloudx-xxxxx.firebaseapp.com",
-    projectId: process.env.FIREBASE_PROJECT_ID || "cloudx-xxxxx",
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "cloudx-xxxxx.appspot.com",
-    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "123456789",
-    appId: process.env.FIREBASE_APP_ID || "1:123456789:web:xxxxx"
+    apiKey: "AIzaSyALDRn4TwSM7sQJdx6JvMtA8cNTV9HKo4w",
+    authDomain: "cloudx-e928c.firebaseapp.com",
+    projectId: "cloudx-e928c",
+    storageBucket: "cloudx-e928c.firebasestorage.app",
+    messagingSenderId: "740963746184",
+    appId: "1:740963746184:web:1ee94d55318759a94bba3d",
+    measurementId: "G-R0Y3YTD1EL"
 };
 
-module.exports = firebaseConfig;
+// Initialize Firebase Admin (for backend)
+// Note: You'll need to download service account key from Firebase Console
+// and set GOOGLE_APPLICATION_CREDENTIALS environment variable
+try {
+    admin.initializeApp({
+        credential: admin.credential.applicationDefault(),
+        projectId: firebaseConfig.projectId
+    });
+} catch (error) {
+    console.log('Firebase Admin initialization skipped:', error.message);
+}
+
+module.exports = { firebaseConfig, admin };
