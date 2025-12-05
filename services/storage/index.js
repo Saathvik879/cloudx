@@ -62,12 +62,36 @@ router.get('/buckets', (req, res) => {
   res.json(metadata.buckets);
 });
 
-// Upload
-router.post('/:bucket', upload.single('file'), (req, res) => {
+// Upload with folder support
+router.post('/:bucket/upload', upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
-  res.json({ filename: req.file.filename, bucket: req.params.bucket, status: 'uploaded' });
+
+  const { folder = '' } = req.body;
+  const bucket = req.params.bucket;
+
+  if (!metadata.buckets[bucket]) {
+    return res.status(404).json({ error: 'Bucket not found' });
+  }
+
+  // If folder specified, move file to that folder
+  if (folder) {
+    const bucketPath = metadata.buckets[bucket].storagePath || path.join(storageDir, bucket);
+    const folderPath = path.join(bucketPath, folder);
+    fs.ensureDirSync(folderPath);
+
+    const oldPath = req.file.path;
+    const newPath = path.join(folderPath, req.file.filename);
+    fs.moveSync(oldPath, newPath);
+  }
+
+  res.json({
+    filename: req.file.filename,
+    bucket,
+    folder: folder || '/',
+    status: 'uploaded'
+  });
 });
 
 // Download
@@ -82,6 +106,65 @@ router.get('/:bucket/:filename', (req, res) => {
     res.download(filePath);
   } else {
     res.status(404).json({ error: 'File not found' });
+  }
+});
+
+// Folder Management
+router.post('/buckets/:bucket/folders', (req, res) => {
+  const { bucket } = req.params;
+  const { folderPath } = req.body;
+
+  if (!metadata.buckets[bucket]) {
+    return res.status(404).json({ error: 'Bucket not found' });
+  }
+
+  if (!folderPath) {
+    return res.status(400).json({ error: 'Folder path required' });
+  }
+
+  const bucketPath = metadata.buckets[bucket].storagePath || path.join(storageDir, bucket);
+  const fullFolderPath = path.join(bucketPath, folderPath);
+
+  try {
+    fs.ensureDirSync(fullFolderPath);
+    res.json({ message: 'Folder created', path: folderPath });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// List files and folders in a bucket/folder
+router.get('/buckets/:bucket/browse', (req, res) => {
+  const { bucket } = req.params;
+  const { folder = '' } = req.query;
+
+  if (!metadata.buckets[bucket]) {
+    return res.status(404).json({ error: 'Bucket not found' });
+  }
+
+  const bucketPath = metadata.buckets[bucket].storagePath || path.join(storageDir, bucket);
+  const browsePath = path.join(bucketPath, folder);
+
+  if (!fs.existsSync(browsePath)) {
+    return res.status(404).json({ error: 'Path not found' });
+  }
+
+  try {
+    const items = fs.readdirSync(browsePath).map(item => {
+      const itemPath = path.join(browsePath, item);
+      const stats = fs.statSync(itemPath);
+
+      return {
+        name: item,
+        type: stats.isDirectory() ? 'folder' : 'file',
+        size: stats.isFile() ? stats.size : null,
+        modified: stats.mtime
+      };
+    });
+
+    res.json({ bucket, folder, items });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
