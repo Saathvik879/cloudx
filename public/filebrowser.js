@@ -1,5 +1,5 @@
 // File Browser JavaScript
-const API_URL = window.location.origin;
+const API_URL = 'https://cloudx-api.onrender.com';
 
 let currentBucket = '';
 let currentFolder = '';

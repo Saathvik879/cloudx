@@ -1,4 +1,4 @@
-const API_URL = window.location.origin;
+const API_URL = 'https://cloudx-api.onrender.com';
 
 // Master key for admin access (must match backend)
 const MASTER_KEY = 'cloudx-admin-2024-secure-key';
