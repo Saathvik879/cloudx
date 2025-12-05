@@ -1,0 +1,14 @@
+node_modules/
+.env
+*.log
+.DS_Store
+services/database/data/
+services/database/*.db
+services/storage/data/
+services/storage/metadata.json
+services/database/metadata.json
+services/compute/deployments/
+services/compute/metadata.json
+.expo/
+mobile-client/node_modules/
+mobile-client/.expo/
