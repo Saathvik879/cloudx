@@ -26,7 +26,7 @@
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.98);
             border-radius: 20px;
             padding: 30px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -59,6 +59,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
+            font-size: 14px;
         }
 
         .btn-primary {
@@ -87,6 +88,7 @@
             font-weight: 600;
             color: #666;
             transition: all 0.3s;
+            font-size: 14px;
         }
 
         .tab.active {
@@ -110,15 +112,23 @@
             margin-bottom: 20px;
         }
 
+        .card h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+
         .form-group {
             display: flex;
             gap: 10px;
             margin-bottom: 15px;
+            flex-wrap: wrap;
         }
 
         input,
         select {
             flex: 1;
+            min-width: 200px;
             padding: 12px;
             border: 2px solid #ddd;
             border-radius: 8px;
@@ -139,11 +149,13 @@
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
+            position: relative;
         }
 
         .file-item:hover {
             background: #e9ecef;
             transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
         .file-icon {
@@ -155,6 +167,7 @@
             font-size: 14px;
             font-weight: 600;
             word-break: break-word;
+            color: #333;
         }
 
         .message {
@@ -202,7 +215,7 @@
             background: white;
             padding: 40px;
             border-radius: 20px;
-            max-width: 400px;
+            max-width: 450px;
             width: 90%;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
@@ -215,6 +228,26 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+        }
+
+        .google-btn {
+            width: 100%;
+            padding: 12px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s;
+        }
+
+        .google-btn:hover {
+            border-color: #4285F4;
+            background: #f8f9fa;
         }
     </style>
 </head>
@@ -242,13 +275,13 @@
                     <select id="bucketSelect" onchange="loadFiles()">
                         <option value="">Select bucket...</option>
                     </select>
-                    <button class="btn btn-primary" onclick="createBucket()">+ New Bucket</button>
-                    <button class="btn btn-primary" onclick="createFolder()">📁 New Folder</button>
+                    <button class="btn btn-primary" onclick="createBucket()">+ Bucket</button>
+                    <button class="btn btn-primary" onclick="createFolder()">📁 Folder</button>
                     <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">📤
                         Upload</button>
                     <input type="file" id="fileInput" style="display:none" multiple onchange="uploadFiles()">
                 </div>
-                <div id="breadcrumb" style="margin: 10px 0; color: #666;"></div>
+                <div id="breadcrumb" style="margin: 10px 0; color: #666; font-size: 14px;"></div>
                 <div id="fileList" class="file-grid"></div>
             </div>
         </div>
@@ -256,7 +289,7 @@
         <!-- Database Tab -->
         <div id="database" class="tab-content">
             <div class="card">
-                <h2 style="margin-bottom: 15px;">Create Database</h2>
+                <h2>Create Database</h2>
                 <div class="form-group">
                     <input type="text" id="dbName" placeholder="Database name">
                     <select id="dbEngine">
@@ -266,31 +299,31 @@
                 </div>
             </div>
             <div class="card">
-                <h2 style="margin-bottom: 15px;">Databases</h2>
+                <h2>Databases</h2>
                 <div id="dbList"></div>
-                <button class="btn btn-primary" onclick="loadDatabases()">Refresh</button>
+                <button class="btn btn-primary" onclick="loadDatabases()" style="margin-top: 15px;">Refresh</button>
             </div>
         </div>
 
         <!-- API Keys Tab -->
         <div id="apikeys" class="tab-content">
             <div class="card">
-                <h2 style="margin-bottom: 15px;">Generate API Key</h2>
+                <h2>Generate API Key</h2>
                 <div class="form-group">
                     <input type="text" id="keyName" placeholder="Key name">
                     <button class="btn btn-primary" onclick="generateKey()">Generate</button>
                 </div>
                 <div id="newKey"
                     style="display:none; margin-top:15px; padding:15px; background:#f0f8ff; border-radius:8px;">
-                    <p style="font-weight:600;">⚠️ Save this key!</p>
+                    <p style="font-weight:600; margin-bottom: 10px;">⚠️ Save this key - it won't be shown again!</p>
                     <code id="keyValue"
-                        style="display:block; padding:10px; background:white; border-radius:4px; margin-top:10px; word-break:break-all;"></code>
+                        style="display:block; padding:10px; background:white; border-radius:4px; word-break:break-all; font-size: 12px;"></code>
                 </div>
             </div>
             <div class="card">
-                <h2 style="margin-bottom: 15px;">API Keys</h2>
+                <h2>API Keys</h2>
                 <div id="keyList"></div>
-                <button class="btn btn-primary" onclick="loadKeys()">Refresh</button>
+                <button class="btn btn-primary" onclick="loadKeys()" style="margin-top: 15px;">Refresh</button>
             </div>
         </div>
     </div>
@@ -298,24 +331,88 @@
     <!-- Login Modal -->
     <div id="loginModal" class="modal">
         <div class="modal-content">
-            <h2 style="color: #667eea; margin-bottom: 20px;">Login to CloudX</h2>
-            <div style="margin-bottom: 20px;">
-                <h3 style="font-size: 16px; margin-bottom: 10px;">Admin Access</h3>
+            <h2 style="color: #667eea; margin-bottom: 25px; text-align: center;">Login to CloudX</h2>
+
+            <!-- Admin Access -->
+            <div style="margin-bottom: 25px;">
+                <h3 style="font-size: 16px; margin-bottom: 12px; color: #333;">Admin Access</h3>
                 <input type="password" id="masterKey" placeholder="Enter master key"
-                    style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 10px;">
+                    style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 10px; font-size: 14px;">
                 <button class="btn btn-primary" style="width: 100%;" onclick="loginAdmin()">Login as Admin</button>
             </div>
-            <div style="text-align: center; margin: 20px 0; color: #999;">OR</div>
+
+            <div style="text-align: center; margin: 25px 0; color: #999; font-weight: 600;">OR</div>
+
+            <!-- Google OAuth -->
             <div>
-                <h3 style="font-size: 16px; margin-bottom: 10px;">User Access</h3>
-                <p style="font-size: 14px; color: #666; margin-bottom: 10px;">Google OAuth coming soon...</p>
+                <h3 style="font-size: 16px; margin-bottom: 12px; color: #333;">User Access</h3>
+                <button class="google-btn" onclick="loginGoogle()">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path fill="#4285F4"
+                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                        <path fill="#34A853"
+                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path fill="#FBBC05"
+                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                        <path fill="#EA4335"
+                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                    </svg>
+                    Sign in with Google
+                </button>
+                <p style="font-size: 12px; color: #666; margin-top: 10px; text-align: center;">Get API key with usage
+                    tracking</p>
             </div>
-            <button class="btn" style="width: 100%; margin-top: 20px; background: #f5f5f5;"
+
+            <button class="btn" style="width: 100%; margin-top: 25px; background: #f5f5f5; color: #666;"
                 onclick="closeLogin()">Cancel</button>
         </div>
     </div>
 
     <div id="message" class="message"></div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyALDRn4TwSM7sQJdx6JvMtA8cNTV9HKo4w",
+            authDomain: "cloudx-e928c.firebaseapp.com",
+            projectId: "cloudx-e928c",
+            storageBucket: "cloudx-e928c.firebasestorage.app",
+            messagingSenderId: "740963746184",
+            appId: "1:740963746184:web:1ee94d55318759a94bba3d"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        window.loginGoogle = async function () {
+            try {
+                const result = await signInWithPopup(auth, provider);
+                const idToken = await result.user.getIdToken();
+
+                // Send to backend to get API key
+                const res = await fetch('https://cloudx-api.onrender.com/api/v1/auth/google', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken })
+                });
+
+                const data = await res.json();
+                localStorage.setItem('cloudx_auth', data.apiKey);
+                window.auth = data.apiKey;
+                closeLogin();
+                showMsg('✅ Logged in successfully!', 'success');
+                loadBuckets();
+                loadDatabases();
+                loadKeys();
+            } catch (error) {
+                showMsg('❌ Google login failed', 'error');
+            }
+        };
+    </script>
 
     <script>
         const API = 'https://cloudx-api.onrender.com/api/v1';
@@ -377,7 +474,7 @@
         async function loadFiles() {
             currentBucket = document.getElementById('bucketSelect').value;
             if (!currentBucket) {
-                document.getElementById('fileList').innerHTML = '<p style="text-align:center; color:#666;">Select a bucket</p>';
+                document.getElementById('fileList').innerHTML = '<p style="text-align:center; color:#666; padding: 40px;">Select a bucket to view files</p>';
                 return;
             }
             try {
@@ -395,7 +492,7 @@
         function displayFiles(items) {
             const list = document.getElementById('fileList');
             if (!items.length) {
-                list.innerHTML = '<p style="text-align:center; color:#666;">Empty folder</p>';
+                list.innerHTML = '<p style="text-align:center; color:#666; padding: 40px;">📂 Empty folder</p>';
                 return;
             }
             list.innerHTML = items.map(item => `
@@ -415,11 +512,11 @@
 
         function updateBreadcrumb() {
             const parts = currentFolder.split('/').filter(p => p);
-            let html = `<a href="#" onclick="currentFolder=''; loadFiles(); return false;">📁 ${currentBucket}</a>`;
+            let html = `<a href="#" onclick="currentFolder=''; loadFiles(); return false;" style="color: #667eea; text-decoration: none; font-weight: 600;">📁 ${currentBucket}</a>`;
             let path = '';
             parts.forEach(part => {
                 path += (path ? '/' : '') + part;
-                html += ` / <a href="#" onclick="currentFolder='${path}'; loadFiles(); return false;">${part}</a>`;
+                html += ` / <a href="#" onclick="currentFolder='${path}'; loadFiles(); return false;" style="color: #667eea; text-decoration: none;">${part}</a>`;
             });
             document.getElementById('breadcrumb').innerHTML = html;
         }
@@ -433,10 +530,10 @@
                     headers: { 'Content-Type': 'application/json', 'X-API-Key': auth },
                     body: JSON.stringify({ name })
                 });
-                showMsg('Bucket created!', 'success');
+                showMsg('✅ Bucket created!', 'success');
                 loadBuckets();
             } catch (err) {
-                showMsg('Error creating bucket', 'error');
+                showMsg('❌ Error creating bucket', 'error');
             }
         }
 
@@ -451,10 +548,10 @@
                     headers: { 'Content-Type': 'application/json', 'X-API-Key': auth },
                     body: JSON.stringify({ folderPath })
                 });
-                showMsg('Folder created!', 'success');
+                showMsg('✅ Folder created!', 'success');
                 loadFiles();
             } catch (err) {
-                showMsg('Error creating folder', 'error');
+                showMsg('❌ Error creating folder', 'error');
             }
         }
 
@@ -471,9 +568,9 @@
                         headers: { 'X-API-Key': auth },
                         body: formData
                     });
-                    showMsg(`${file.name} uploaded!`, 'success');
+                    showMsg(`✅ ${file.name} uploaded!`, 'success');
                 } catch (err) {
-                    showMsg(`Error uploading ${file.name}`, 'error');
+                    showMsg(`❌ Error uploading ${file.name}`, 'error');
                 }
             }
             loadFiles();
@@ -489,10 +586,10 @@
                 const list = document.getElementById('dbList');
                 list.innerHTML = Object.keys(dbs).map(name => `
                     <div class="list-item">
-                        <span>${name}</span>
+                        <span style="font-weight: 600;">${name}</span>
                         <span style="color:#666; font-size:12px;">${dbs[name].engine}</span>
                     </div>
-                `).join('') || '<p style="color:#666;">No databases</p>';
+                `).join('') || '<p style="color:#666; padding: 15px; text-align: center;">No databases yet</p>';
             } catch (err) {
                 showMsg('Error loading databases', 'error');
             }
@@ -500,18 +597,18 @@
 
         async function createDB() {
             const name = document.getElementById('dbName').value;
-            if (!name) return;
+            if (!name) return showMsg('Enter database name', 'error');
             try {
                 await fetch(`${API}/database/databases`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-API-Key': auth },
                     body: JSON.stringify({ name, engine: 'sqlite' })
                 });
-                showMsg('Database created!', 'success');
+                showMsg('✅ Database created!', 'success');
                 document.getElementById('dbName').value = '';
                 loadDatabases();
             } catch (err) {
-                showMsg('Error creating database', 'error');
+                showMsg('❌ Error creating database', 'error');
             }
         }
 
@@ -525,10 +622,10 @@
                 const list = document.getElementById('keyList');
                 list.innerHTML = keys.map(k => `
                     <div class="list-item">
-                        <span>${k.name || 'Unnamed'}</span>
-                        <button class="btn" style="background:#ef4444; color:white; padding:5px 10px;" onclick="revokeKey('${k.key}')">Revoke</button>
+                        <span style="font-weight: 600;">${k.name || 'Unnamed'}</span>
+                        <button class="btn" style="background:#ef4444; color:white; padding:6px 12px; font-size: 12px;" onclick="revokeKey('${k.key}')">Revoke</button>
                     </div>
-                `).join('') || '<p style="color:#666;">No keys</p>';
+                `).join('') || '<p style="color:#666; padding: 15px; text-align: center;">No API keys yet</p>';
             } catch (err) {
                 showMsg('Error loading keys', 'error');
             }
@@ -536,6 +633,7 @@
 
         async function generateKey() {
             const name = document.getElementById('keyName').value;
+            if (!name) return showMsg('Enter key name', 'error');
             try {
                 const res = await fetch(`${API}/auth/keys`, {
                     method: 'POST',
@@ -546,9 +644,10 @@
                 document.getElementById('keyValue').textContent = data.key;
                 document.getElementById('newKey').style.display = 'block';
                 document.getElementById('keyName').value = '';
+                showMsg('✅ API key generated!', 'success');
                 loadKeys();
             } catch (err) {
-                showMsg('Error generating key', 'error');
+                showMsg('❌ Error generating key', 'error');
             }
         }
 
@@ -559,10 +658,10 @@
                     method: 'DELETE',
                     headers: { 'X-API-Key': auth }
                 });
-                showMsg('Key revoked!', 'success');
+                showMsg('✅ Key revoked!', 'success');
                 loadKeys();
             } catch (err) {
-                showMsg('Error revoking key', 'error');
+                showMsg('❌ Error revoking key', 'error');
             }
         }
 
