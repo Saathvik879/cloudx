@@ -9,8 +9,8 @@ const { requireAuth } = require('../auth/middleware');
 const DB_PATH = path.join(__dirname, '../../data/databases');
 fs.ensureDirSync(DB_PATH);
 
-// In-memory database connections
-const dbs = {};
+// In-memory database connections cache
+const dbConnections = {};
 
 // Helper to get user DB path
 function getUserDbPath(userId) {
@@ -19,66 +19,191 @@ function getUserDbPath(userId) {
   return userPath;
 }
 
+// Helper to get or create database connection
+function getDbConnection(dbFile) {
+  if (!dbConnections[dbFile]) {
+    dbConnections[dbFile] = new sqlite3.Database(dbFile);
+  }
+  return dbConnections[dbFile];
+}
+
 // List databases
 router.get('/databases', requireAuth, (req, res) => {
-  const userId = req.userId;
-  const userPath = getUserDbPath(userId);
+  try {
+    const userId = req.userId;
+    const userPath = getUserDbPath(userId);
 
-  const files = fs.readdirSync(userPath).filter(f => f.endsWith('.db'));
-  const databases = {};
+    const files = fs.readdirSync(userPath).filter(f => f.endsWith('.db'));
+    const databases = {};
 
-  files.forEach(f => {
-    databases[f.replace('.db', '')] = {
-      engine: 'sqlite',
-      created: fs.statSync(path.join(userPath, f)).birthtime
-    };
-  });
+    files.forEach(f => {
+      const dbName = f.replace('.db', '');
+      const stats = fs.statSync(path.join(userPath, f));
+      databases[dbName] = {
+        engine: 'sqlite',
+        size: stats.size,
+        created: stats.birthtime,
+        modified: stats.mtime
+      };
+    });
 
-  res.json(databases);
+    res.json(databases);
+  } catch (err) {
+    console.error('Error listing databases:', err);
+    res.status(500).json({ error: 'Failed to list databases' });
+  }
 });
 
 // Create database
 router.post('/databases', requireAuth, (req, res) => {
-  const { name } = req.body;
-  const userId = req.userId;
+  try {
+    const { name } = req.body;
+    const userId = req.userId;
 
-  if (!name) return res.status(400).json({ error: 'Name required' });
+    if (!name) {
+      return res.status(400).json({ error: 'Database name is required' });
+    }
 
-  const userPath = getUserDbPath(userId);
-  const dbFile = path.join(userPath, `${name}.db`);
+    // Validate name (alphanumeric and underscores only)
+    if (!/^[a-zA-Z0-9_]+$/.test(name)) {
+      return res.status(400).json({ error: 'Database name can only contain letters, numbers, and underscores' });
+    }
 
-  if (fs.existsSync(dbFile)) {
-    return res.status(400).json({ error: 'Database exists' });
+    const userPath = getUserDbPath(userId);
+    const dbFile = path.join(userPath, `${name}.db`);
+
+    if (fs.existsSync(dbFile)) {
+      return res.status(400).json({ error: 'Database already exists' });
+    }
+
+    // Create database file
+    const db = new sqlite3.Database(dbFile, (err) => {
+      if (err) {
+        console.error('Error creating database:', err);
+        return res.status(500).json({ error: 'Failed to create database' });
+      }
+
+      db.close();
+      res.json({
+        message: 'Database created successfully',
+        name: name,
+        engine: 'sqlite'
+      });
+    });
+  } catch (err) {
+    console.error('Error creating database:', err);
+    res.status(500).json({ error: 'Failed to create database' });
   }
-
-  new sqlite3.Database(dbFile, (err) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: 'Database created' });
-  });
 });
 
-// Execute SQL
+// Execute SQL query
 router.post('/databases/:name/query', requireAuth, (req, res) => {
-  const { name } = req.params;
-  const { query } = req.body;
-  const userId = req.userId;
+  try {
+    const { name } = req.params;
+    const { query } = req.body;
+    const userId = req.userId;
 
-  if (!query) return res.status(400).json({ error: 'Query required' });
+    if (!query) {
+      return res.status(400).json({ error: 'Query is required' });
+    }
 
-  const userPath = getUserDbPath(userId);
-  const dbFile = path.join(userPath, `${name}.db`);
+    const userPath = getUserDbPath(userId);
+    const dbFile = path.join(userPath, `${name}.db`);
 
-  if (!fs.existsSync(dbFile)) {
-    return res.status(404).json({ error: 'Database not found' });
+    if (!fs.existsSync(dbFile)) {
+      return res.status(404).json({ error: 'Database not found' });
+    }
+
+    const db = new sqlite3.Database(dbFile);
+    const queryLower = query.trim().toLowerCase();
+
+    // Determine if it's a SELECT query or a modification query
+    if (queryLower.startsWith('select') || queryLower.startsWith('pragma')) {
+      db.all(query, [], (err, rows) => {
+        db.close();
+        if (err) {
+          return res.status(400).json({ error: err.message });
+        }
+        res.json({
+          results: rows,
+          rowCount: rows.length
+        });
+      });
+    } else {
+      // INSERT, UPDATE, DELETE, CREATE, DROP, etc.
+      db.run(query, [], function (err) {
+        db.close();
+        if (err) {
+          return res.status(400).json({ error: err.message });
+        }
+        res.json({
+          message: 'Query executed successfully',
+          changes: this.changes,
+          lastID: this.lastID
+        });
+      });
+    }
+  } catch (err) {
+    console.error('Error executing query:', err);
+    res.status(500).json({ error: 'Failed to execute query' });
   }
+});
 
-  const db = new sqlite3.Database(dbFile);
+// Get table list
+router.get('/databases/:name/tables', requireAuth, (req, res) => {
+  try {
+    const { name } = req.params;
+    const userId = req.userId;
 
-  db.all(query, [], (err, rows) => {
-    db.close();
-    if (err) return res.status(400).json({ error: err.message });
-    res.json({ results: rows });
-  });
+    const userPath = getUserDbPath(userId);
+    const dbFile = path.join(userPath, `${name}.db`);
+
+    if (!fs.existsSync(dbFile)) {
+      return res.status(404).json({ error: 'Database not found' });
+    }
+
+    const db = new sqlite3.Database(dbFile);
+
+    db.all("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'", [], (err, rows) => {
+      db.close();
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      res.json({
+        tables: rows.map(r => r.name)
+      });
+    });
+  } catch (err) {
+    console.error('Error getting tables:', err);
+    res.status(500).json({ error: 'Failed to get tables' });
+  }
+});
+
+// Delete database
+router.delete('/databases/:name', requireAuth, (req, res) => {
+  try {
+    const { name } = req.params;
+    const userId = req.userId;
+
+    const userPath = getUserDbPath(userId);
+    const dbFile = path.join(userPath, `${name}.db`);
+
+    if (!fs.existsSync(dbFile)) {
+      return res.status(404).json({ error: 'Database not found' });
+    }
+
+    // Close any open connection
+    if (dbConnections[dbFile]) {
+      dbConnections[dbFile].close();
+      delete dbConnections[dbFile];
+    }
+
+    fs.removeSync(dbFile);
+    res.json({ message: 'Database deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting database:', err);
+    res.status(500).json({ error: 'Failed to delete database' });
+  }
 });
 
 module.exports = router;

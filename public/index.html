@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CloudX - Personal Cloud</title>
     <link rel="icon" href="/icon-192.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <meta name="description" content="CloudX - Your Personal Cloud Storage and Database Platform">
     <style>
         * {
             margin: 0;
@@ -36,6 +39,8 @@
             padding-bottom: 20px;
             border-bottom: 2px solid #eee;
             margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         h1 {
@@ -50,8 +55,8 @@
         }
 
         .avatar {
-            width: 40px;
-            height: 40px;
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
@@ -59,7 +64,8 @@
             align-items: center;
             justify-content: center;
             font-weight: 600;
-            font-size: 16px;
+            font-size: 18px;
+            flex-shrink: 0;
         }
 
         .user-info {
@@ -67,8 +73,13 @@
             flex-direction: column;
         }
 
+        .user-name {
+            font-weight: 600;
+            color: #333;
+        }
+
         .user-email {
-            font-size: 14px;
+            font-size: 13px;
             color: #666;
         }
 
@@ -80,15 +91,27 @@
             cursor: pointer;
             transition: all 0.3s;
             font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
         }
 
         .btn-primary {
-            background: #667eea;
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
         }
 
         .btn-primary:hover {
-            background: #5568d3;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
         }
 
         .btn-danger {
@@ -96,22 +119,36 @@
             color: white;
         }
 
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
         .btn-google {
-            background: #db4437;
-            color: white;
+            background: white;
+            border: 2px solid #ddd;
+            color: #333;
             width: 100%;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            padding: 12px 20px;
+            font-size: 15px;
         }
 
         .btn-google:hover {
-            background: #c53929;
+            background: #f8f9fa;
+            border-color: #4285f4;
+        }
+
+        .btn-google img {
+            width: 20px;
+            height: 20px;
         }
 
         .tabs {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 5px;
+            margin-bottom: 25px;
             border-bottom: 2px solid #eee;
+            overflow-x: auto;
         }
 
         .tab {
@@ -122,6 +159,12 @@
             cursor: pointer;
             font-weight: 600;
             color: #666;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            color: #667eea;
         }
 
         .tab.active {
@@ -135,13 +178,32 @@
 
         .tab-content.active {
             display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .card {
             background: #f8f9fa;
-            padding: 20px;
-            border-radius: 12px;
+            padding: 25px;
+            border-radius: 16px;
             margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 18px;
         }
 
         .form-group {
@@ -152,38 +214,88 @@
         }
 
         input,
-        select {
+        select,
+        textarea {
             flex: 1;
             min-width: 200px;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
         }
 
         .file-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 15px;
         }
 
         .file-item {
-            padding: 20px;
+            padding: 20px 15px;
             background: white;
             border-radius: 12px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
             position: relative;
+            border: 2px solid transparent;
         }
 
         .file-item:hover {
             transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
         }
 
         .file-icon {
-            font-size: 48px;
+            font-size: 42px;
             margin-bottom: 10px;
+        }
+
+        .file-name {
+            font-weight: 600;
+            font-size: 13px;
+            color: #333;
+            word-break: break-word;
+        }
+
+        .file-actions {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 5px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .file-item:hover .file-actions {
+            opacity: 1;
+        }
+
+        .file-action-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: none;
+            background: rgba(102, 126, 234, 0.1);
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-action-btn:hover {
+            background: rgba(102, 126, 234, 0.2);
         }
 
         .message {
@@ -191,24 +303,27 @@
             top: 20px;
             right: 20px;
             padding: 15px 25px;
-            border-radius: 8px;
+            border-radius: 10px;
             font-weight: 600;
             opacity: 0;
+            transform: translateX(100px);
             transition: all 0.3s;
-            z-index: 1000;
+            z-index: 3000;
+            max-width: 350px;
         }
 
         .message.show {
             opacity: 1;
+            transform: translateX(0);
         }
 
         .message.success {
-            background: #10b981;
+            background: linear-gradient(135deg, #10b981, #059669);
             color: white;
         }
 
         .message.error {
-            background: #ef4444;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
             color: white;
         }
 
@@ -219,40 +334,207 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.6);
             align-items: center;
             justify-content: center;
             z-index: 2000;
+            backdrop-filter: blur(5px);
         }
 
         .modal-content {
             background: white;
             padding: 40px;
-            border-radius: 20px;
-            max-width: 450px;
+            border-radius: 24px;
+            max-width: 420px;
             width: 90%;
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
 
         .storage-widget {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
+            padding: 25px;
+            border-radius: 16px;
+            margin-bottom: 25px;
+        }
+
+        .storage-widget h3 {
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .storage-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            margin-bottom: 10px;
         }
 
         .progress-bar {
             background: rgba(255, 255, 255, 0.3);
-            height: 10px;
-            border-radius: 5px;
+            height: 12px;
+            border-radius: 6px;
             overflow: hidden;
-            margin: 10px 0;
         }
 
         .progress-fill {
             background: white;
             height: 100%;
-            transition: width 0.3s;
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 0;
+            color: #666;
+            font-size: 14px;
+            flex-wrap: wrap;
+        }
+
+        .breadcrumb-item {
+            cursor: pointer;
+            color: #667eea;
+        }
+
+        .breadcrumb-item:hover {
+            text-decoration: underline;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+
+        .db-selector {
+            margin-bottom: 15px;
+        }
+
+        .db-selector select {
+            width: 100%;
+            padding: 12px;
+        }
+
+        .query-results {
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+
+        .query-results table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .query-results th,
+        .query-results td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        .query-results th {
+            background: #f0f0f0;
+            font-weight: 600;
+        }
+
+        .query-results tr:hover {
+            background: #f8f9fa;
+        }
+
+        .key-item {
+            padding: 18px;
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .key-info {
+            flex: 1;
+        }
+
+        .key-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .key-prefix {
+            font-size: 12px;
+            color: #666;
+            font-family: monospace;
+            margin-top: 4px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .tabs {
+                width: 100%;
+            }
+
+            .form-group {
+                flex-direction: column;
+            }
+
+            .form-group input,
+            .form-group select {
+                min-width: 100%;
+            }
         }
     </style>
 </head>
@@ -262,14 +544,14 @@
         <header>
             <div>
                 <h1>☁️ CloudX</h1>
-                <p style="color: #666; font-size: 14px;">Your Personal Cloud</p>
+                <p style="color: #666; font-size: 14px;">Your Personal Cloud Platform</p>
             </div>
             <div id="authSection">
                 <button class="btn btn-primary" onclick="showLogin()" id="loginBtn">🔐 Login</button>
                 <div class="user-profile" id="userProfile" style="display:none;">
-                    <div class="avatar" id="userAvatar">A</div>
+                    <div class="avatar" id="userAvatar">U</div>
                     <div class="user-info">
-                        <div id="userName" style="font-weight:600;"></div>
+                        <div class="user-name" id="userName"></div>
                         <div class="user-email" id="userEmail"></div>
                     </div>
                     <button class="btn btn-danger" onclick="logout()">Logout</button>
@@ -279,10 +561,10 @@
 
         <!-- Storage Widget -->
         <div class="storage-widget" id="storageWidget" style="display:none;">
-            <h3 style="margin-bottom:10px;">💾 Storage Usage</h3>
-            <div style="display:flex; justify-content:space-between; font-size:14px;">
-                <span id="usedSpace">0 GB</span>
-                <span id="totalSpace">0 GB</span>
+            <h3>💾 Storage Usage</h3>
+            <div class="storage-info">
+                <span id="usedSpace">0 GB used</span>
+                <span id="totalSpace">0 GB total</span>
             </div>
             <div class="progress-bar">
                 <div class="progress-fill" id="progressFill" style="width:0%"></div>
@@ -299,38 +581,56 @@
         <div id="files" class="tab-content active">
             <div class="card">
                 <div class="form-group">
-                    <select id="bucketSelect" onchange="loadFiles()">
+                    <select id="bucketSelect" onchange="selectBucket()">
                         <option value="">Select bucket...</option>
                     </select>
                     <button class="btn btn-primary" onclick="createBucket()">+ Bucket</button>
-                    <button class="btn btn-primary" onclick="createFolder()">📁 Folder</button>
+                    <button class="btn btn-secondary" onclick="createFolder()">📁 New Folder</button>
                     <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">📤
                         Upload</button>
                     <input type="file" id="fileInput" style="display:none" multiple onchange="uploadFiles()">
                 </div>
-                <div id="breadcrumb" style="margin:10px 0; color:#666;"></div>
-                <div id="fileList" class="file-grid"></div>
+
+                <div class="breadcrumb" id="breadcrumb"></div>
+
+                <div id="fileList" class="file-grid">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📁</div>
+                        <p>Select a bucket to view files</p>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Database Tab -->
         <div id="database" class="tab-content">
             <div class="card">
-                <h2 style="margin-bottom:15px;">Create Database</h2>
+                <h2>Create Database</h2>
                 <div class="form-group">
-                    <input type="text" id="dbName" placeholder="Database name">
-                    <button class="btn btn-primary" onclick="createDB()">Create</button>
+                    <input type="text" id="dbName" placeholder="Database name (letters, numbers, underscores)">
+                    <button class="btn btn-primary" onclick="createDB()">Create Database</button>
                 </div>
             </div>
+
             <div class="card">
-                <h2 style="margin-bottom:15px;">SQL Query</h2>
-                <textarea id="sqlQuery" placeholder="SELECT * FROM table_name"
-                    style="width:100%; padding:12px; border:2px solid #ddd; border-radius:8px; min-height:100px; font-family:monospace;"></textarea>
-                <button class="btn btn-primary" onclick="executeSQL()" style="margin-top:10px;">Execute</button>
-                <div id="queryResults" style="margin-top:15px; overflow-x:auto;"></div>
+                <h2>SQL Query</h2>
+                <div class="db-selector">
+                    <select id="dbSelect" onchange="loadTables()">
+                        <option value="">Select database...</option>
+                    </select>
+                </div>
+                <textarea id="sqlQuery" placeholder="SELECT * FROM table_name;"
+                    style="width:100%; min-height:120px; font-family:monospace; resize:vertical;"></textarea>
+                <div style="margin-top:15px; display:flex; gap:10px;">
+                    <button class="btn btn-primary" onclick="executeSQL()">▶ Execute</button>
+                    <button class="btn btn-secondary"
+                        onclick="document.getElementById('sqlQuery').value = ''">Clear</button>
+                </div>
+                <div id="queryResults" class="query-results"></div>
             </div>
+
             <div class="card">
-                <h2 style="margin-bottom:15px;">Databases</h2>
+                <h2>Your Databases</h2>
                 <div id="dbList"></div>
             </div>
         </div>
@@ -338,20 +638,24 @@
         <!-- API Keys Tab -->
         <div id="apikeys" class="tab-content">
             <div class="card">
-                <h2 style="margin-bottom:15px;">Generate API Key</h2>
+                <h2>Generate API Key</h2>
                 <div class="form-group">
-                    <input type="text" id="keyName" placeholder="Key name">
-                    <button class="btn btn-primary" onclick="generateKey()">Generate</button>
+                    <input type="text" id="keyName" placeholder="Key name (e.g., My App)">
+                    <button class="btn btn-primary" onclick="generateKey()">🔑 Generate</button>
                 </div>
                 <div id="newKey"
-                    style="display:none; margin-top:15px; padding:15px; background:#f0f8ff; border-radius:8px;">
-                    <p style="font-weight:600; margin-bottom:10px;">⚠️ Save this key!</p>
+                    style="display:none; margin-top:20px; padding:20px; background:#fff3cd; border-radius:12px; border-left:4px solid #ffc107;">
+                    <p style="font-weight:600; margin-bottom:10px; color:#856404;">⚠️ Save this key securely - it won't
+                        be shown again!</p>
                     <code id="keyValue"
-                        style="display:block; padding:10px; background:white; border-radius:4px; word-break:break-all; font-size:12px;"></code>
+                        style="display:block; padding:12px; background:white; border-radius:6px; word-break:break-all; font-size:13px; border:1px solid #ddd;"></code>
+                    <button class="btn btn-secondary" onclick="copyKey()" style="margin-top:10px;">📋 Copy to
+                        Clipboard</button>
                 </div>
             </div>
+
             <div class="card">
-                <h2 style="margin-bottom:15px;">API Keys</h2>
+                <h2>Your API Keys</h2>
                 <div id="keyList"></div>
             </div>
         </div>
@@ -360,25 +664,35 @@
     <!-- Login Modal -->
     <div id="loginModal" class="modal">
         <div class="modal-content">
-            <h2 style="color:#667eea; margin-bottom:25px; text-align:center;">Login to CloudX</h2>
+            <h2 style="color:#667eea; margin-bottom:30px; text-align:center;">Welcome to CloudX</h2>
 
             <button class="btn btn-google" onclick="loginGoogle()">
-                <span style="margin-right:10px;">G</span> Sign in with Google
+                <svg width="20" height="20" viewBox="0 0 24 24">
+                    <path fill="#4285F4"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                    <path fill="#EA4335"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                </svg>
+                Sign in with Google
             </button>
 
-            <div style="display:flex; align-items:center; margin:20px 0;">
+            <div style="display:flex; align-items:center; margin:25px 0;">
                 <div style="flex:1; height:1px; background:#ddd;"></div>
-                <div style="padding:0 10px; color:#666; font-size:14px;">OR</div>
+                <div style="padding:0 15px; color:#999; font-size:13px;">or use admin key</div>
                 <div style="flex:1; height:1px; background:#ddd;"></div>
             </div>
 
-            <div style="margin-bottom:20px;">
-                <h3 style="font-size:16px; margin-bottom:12px;">Admin Access</h3>
-                <input type="password" id="masterKey" placeholder="Enter master key"
-                    style="width:100%; padding:12px; border:2px solid #ddd; border-radius:8px; margin-bottom:10px;">
-                <button class="btn btn-primary" style="width:100%;" onclick="loginAdmin()">Login as Admin</button>
-            </div>
-            <button class="btn" style="width:100%; background:#f5f5f5;" onclick="closeLogin()">Cancel</button>
+            <input type="password" id="masterKey" placeholder="Enter master key"
+                style="width:100%; padding:14px; margin-bottom:15px;">
+            <button class="btn btn-primary" style="width:100%; padding:14px;" onclick="loginAdmin()">Login as
+                Admin</button>
+
+            <button class="btn btn-secondary" style="width:100%; margin-top:15px;"
+                onclick="closeLogin()">Cancel</button>
         </div>
     </div>
 
@@ -390,15 +704,15 @@
         import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyDOCAbC123dEf456GhI789jKl012MnO", // Replace with your actual config from Firebase Console
+            apiKey: "AIzaSyALDRn4TwSM7sQJdx6JvMtA8cNTV9HKo4w",
             authDomain: "cloudx-e928c.firebaseapp.com",
             projectId: "cloudx-e928c",
-            storageBucket: "cloudx-e928c.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef"
+            storageBucket: "cloudx-e928c.firebasestorage.app",
+            messagingSenderId: "740963746184",
+            appId: "1:740963746184:web:1ee94d55318759a94bba3d",
+            measurementId: "G-R0Y3YTD1EL"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
@@ -406,41 +720,67 @@
         window.loginGoogle = async function () {
             try {
                 const result = await signInWithPopup(auth, provider);
-                const idToken = await result.user.getIdToken();
+                const user = result.user;
+                const idToken = await user.getIdToken();
 
-                // Send to backend
-                const res = await fetch('https://cloudx-api.onrender.com/api/v1/auth/google-signin', {
+                const res = await fetch(window.API + '/auth/google-signin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ idToken })
+                    body: JSON.stringify({
+                        idToken,
+                        email: user.email,
+                        name: user.displayName,
+                        uid: user.uid
+                    })
                 });
 
-                if (!res.ok) throw new Error('Backend auth failed');
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Authentication failed');
+                }
 
                 const data = await res.json();
                 localStorage.setItem('cloudx_auth', data.apiKey);
+                window.closeLogin();
                 window.location.reload();
             } catch (error) {
                 console.error('Google login error:', error);
-                alert('Login failed: ' + error.message);
+                window.showMsg('Login failed: ' + error.message, 'error');
             }
         };
     </script>
 
     <script>
+        // Configuration
         const API = 'https://cloudx-api.onrender.com/api/v1';
+        window.API = API;
         const MASTER_KEY = 'cloudx-admin-2024-secure-key';
+
+        // State
         let apiKey = localStorage.getItem('cloudx_auth');
         let currentBucket = '';
         let currentFolder = '';
         let userProfile = null;
+        let databases = {};
 
-        // Auth
-        function showLogin() { document.getElementById('loginModal').style.display = 'flex'; }
-        function closeLogin() { document.getElementById('loginModal').style.display = 'none'; }
+        // Auth Functions
+        function showLogin() {
+            document.getElementById('loginModal').style.display = 'flex';
+        }
+
+        window.closeLogin = function () {
+            document.getElementById('loginModal').style.display = 'none';
+        }
+
+        function closeLogin() { window.closeLogin(); }
 
         async function loginAdmin() {
-            const key = document.getElementById('masterKey').value;
+            const key = document.getElementById('masterKey').value.trim();
+            if (!key) {
+                showMsg('Please enter the master key', 'error');
+                return;
+            }
+
             if (key === MASTER_KEY) {
                 apiKey = key;
                 localStorage.setItem('cloudx_auth', key);
@@ -448,7 +788,7 @@
                 await loadProfile();
                 showMsg('✅ Admin access granted!', 'success');
             } else {
-                showMsg('❌ Invalid key!', 'error');
+                showMsg('❌ Invalid master key', 'error');
             }
         }
 
@@ -457,24 +797,29 @@
                 const res = await fetch(`${API}/auth/profile`, {
                     headers: { 'X-API-Key': apiKey }
                 });
-                if (!res.ok) throw new Error('Profile load failed');
+
+                if (!res.ok) {
+                    throw new Error('Invalid session');
+                }
+
                 userProfile = await res.json();
 
                 // Update UI
                 document.getElementById('loginBtn').style.display = 'none';
                 document.getElementById('userProfile').style.display = 'flex';
-                document.getElementById('userName').textContent = userProfile.name;
+                document.getElementById('userName').textContent = userProfile.name || 'User';
                 document.getElementById('userEmail').textContent = userProfile.email;
-                document.getElementById('userAvatar').textContent = userProfile.name[0].toUpperCase();
+                document.getElementById('userAvatar').textContent = (userProfile.name || 'U')[0].toUpperCase();
                 document.getElementById('storageWidget').style.display = 'block';
 
+                // Load data
                 loadBuckets();
                 loadDatabases();
                 loadKeys();
                 loadStorageStats();
             } catch (err) {
                 console.error('Profile load error:', err);
-                if (apiKey) logout(); // Invalid key
+                logout();
             }
         }
 
@@ -482,13 +827,30 @@
             localStorage.removeItem('cloudx_auth');
             apiKey = null;
             userProfile = null;
+            currentBucket = '';
+            currentFolder = '';
+
             document.getElementById('loginBtn').style.display = 'block';
             document.getElementById('userProfile').style.display = 'none';
             document.getElementById('storageWidget').style.display = 'none';
-            showMsg('Logged out', 'success');
+
+            // Reset file list
+            document.getElementById('fileList').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📁</div>
+                    <p>Select a bucket to view files</p>
+                </div>
+            `;
+            document.getElementById('breadcrumb').innerHTML = '';
+            document.getElementById('bucketSelect').innerHTML = '<option value="">Select bucket...</option>';
+            document.getElementById('dbSelect').innerHTML = '<option value="">Select database...</option>';
+            document.getElementById('dbList').innerHTML = '';
+            document.getElementById('keyList').innerHTML = '';
+
+            showMsg('Logged out successfully', 'success');
         }
 
-        // UI
+        // UI Functions
         function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -496,12 +858,14 @@
             event.target.classList.add('active');
         }
 
-        function showMsg(text, type) {
+        window.showMsg = function (text, type) {
             const msg = document.getElementById('message');
             msg.textContent = text;
             msg.className = `message show ${type}`;
-            setTimeout(() => msg.classList.remove('show'), 3000);
-        }
+            setTimeout(() => msg.classList.remove('show'), 4000);
+        };
+
+        function showMsg(text, type) { window.showMsg(text, type); }
 
         // Storage Stats
         async function loadStorageStats() {
@@ -510,9 +874,10 @@
                     headers: { 'X-API-Key': apiKey }
                 });
                 const stats = await res.json();
+
                 const usedGB = (stats.used / 1024 / 1024 / 1024).toFixed(2);
                 const totalGB = (stats.total / 1024 / 1024 / 1024).toFixed(2);
-                const percent = ((stats.used / stats.total) * 100).toFixed(1);
+                const percent = Math.min(((stats.used / stats.total) * 100), 100).toFixed(1);
 
                 document.getElementById('usedSpace').textContent = `${usedGB} GB used`;
                 document.getElementById('totalSpace').textContent = `${totalGB} GB total`;
@@ -531,59 +896,147 @@
                 const buckets = await res.json();
                 const select = document.getElementById('bucketSelect');
                 select.innerHTML = '<option value="">Select bucket...</option>';
+
                 Object.keys(buckets).forEach(name => {
-                    select.innerHTML += `<option value="${name}">${name}</option>`;
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    select.appendChild(option);
                 });
+
+                if (currentBucket) {
+                    select.value = currentBucket;
+                }
             } catch (err) {
                 showMsg('Error loading buckets', 'error');
             }
         }
 
-        async function loadFiles() {
+        function selectBucket() {
             currentBucket = document.getElementById('bucketSelect').value;
+            currentFolder = '';
+            loadFiles();
+        }
+
+        async function loadFiles() {
+            const fileList = document.getElementById('fileList');
+
             if (!currentBucket) {
-                document.getElementById('fileList').innerHTML = '<p style="text-align:center; padding:40px; color:#666;">Select a bucket</p>';
+                fileList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📁</div>
+                        <p>Select a bucket to view files</p>
+                    </div>
+                `;
+                updateBreadcrumb();
                 return;
             }
+
+            fileList.innerHTML = '<div class="loading"></div>';
+
             try {
-                const res = await fetch(`${API}/storage/buckets/${currentBucket}/browse?folder=${currentFolder}`, {
+                const res = await fetch(`${API}/storage/buckets/${currentBucket}/browse?folder=${encodeURIComponent(currentFolder)}`, {
                     headers: { 'X-API-Key': apiKey }
                 });
                 const data = await res.json();
                 displayFiles(data.items || []);
+                updateBreadcrumb();
             } catch (err) {
                 showMsg('Error loading files', 'error');
+                fileList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <p>Error loading files</p>
+                    </div>
+                `;
             }
         }
 
         function displayFiles(items) {
             const list = document.getElementById('fileList');
+
             if (!items.length) {
-                list.innerHTML = '<p style="text-align:center; padding:40px; color:#666;">📂 Empty folder</p>';
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📂</div>
+                        <p>This folder is empty</p>
+                    </div>
+                `;
                 return;
             }
+
             list.innerHTML = items.map(item => `
-                <div class="file-item" onclick="handleClick('${item.name}', '${item.type}')" style="position:relative;">
-                    <div class="file-icon">${item.type === 'folder' ? '📁' : '📄'}</div>
-                    <div style="font-weight:600; font-size:14px;">${item.name}</div>
-                    ${item.type === 'file' ? `
-                    <button onclick="event.stopPropagation(); downloadFile('${item.name}')" 
-                            style="position:absolute; top:10px; right:10px; background:rgba(102,126,234,0.1); border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">
-                        📥
-                    </button>` : ''}
+                <div class="file-item" onclick="handleFileClick('${item.name}', '${item.type}')">
+                    <div class="file-actions">
+                        ${item.type === 'file' ? `
+                            <button class="file-action-btn" onclick="event.stopPropagation(); downloadFile('${item.name}')" title="Download">📥</button>
+                        ` : ''}
+                        <button class="file-action-btn" onclick="event.stopPropagation(); deleteItem('${item.name}')" title="Delete">🗑️</button>
+                    </div>
+                    <div class="file-icon">${item.type === 'folder' ? '📁' : getFileIcon(item.name)}</div>
+                    <div class="file-name">${item.name}</div>
                 </div>
             `).join('');
         }
 
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const icons = {
+                'pdf': '📕', 'doc': '📘', 'docx': '📘', 'txt': '📄',
+                'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️', 'svg': '🖼️',
+                'mp3': '🎵', 'wav': '🎵', 'mp4': '🎬', 'mov': '🎬', 'avi': '🎬',
+                'zip': '📦', 'rar': '📦', '7z': '📦',
+                'js': '📜', 'html': '📜', 'css': '📜', 'json': '📜', 'py': '🐍',
+                'xls': '📊', 'xlsx': '📊', 'csv': '📊'
+            };
+            return icons[ext] || '📄';
+        }
+
+        function updateBreadcrumb() {
+            const breadcrumb = document.getElementById('breadcrumb');
+
+            if (!currentBucket) {
+                breadcrumb.innerHTML = '';
+                return;
+            }
+
+            let html = `<span class="breadcrumb-item" onclick="goToFolder('')">🏠 ${currentBucket}</span>`;
+
+            if (currentFolder) {
+                const parts = currentFolder.split('/');
+                let path = '';
+                parts.forEach((part, i) => {
+                    path += (i > 0 ? '/' : '') + part;
+                    html += ` / <span class="breadcrumb-item" onclick="goToFolder('${path}')">${part}</span>`;
+                });
+            }
+
+            breadcrumb.innerHTML = html;
+        }
+
+        function goToFolder(path) {
+            currentFolder = path;
+            loadFiles();
+        }
+
+        function handleFileClick(name, type) {
+            if (type === 'folder') {
+                currentFolder = currentFolder ? `${currentFolder}/${name}` : name;
+                loadFiles();
+            }
+        }
+
         async function downloadFile(filename) {
             if (!currentBucket) return;
-            const folder = currentFolder ? `?folder=${currentFolder}` : '';
-            const url = `${API}/storage/${currentBucket}/download/${filename}${folder}`;
+
+            const folderParam = currentFolder ? `?folder=${encodeURIComponent(currentFolder)}` : '';
+            const url = `${API}/storage/${currentBucket}/download/${encodeURIComponent(filename)}${folderParam}`;
 
             try {
                 const res = await fetch(url, {
                     headers: { 'X-API-Key': apiKey }
                 });
+
                 if (!res.ok) throw new Error('Download failed');
 
                 const blob = await res.blob();
@@ -595,159 +1048,310 @@
                 a.click();
                 window.URL.revokeObjectURL(downloadUrl);
                 document.body.removeChild(a);
+
+                showMsg('✅ Download started', 'success');
             } catch (err) {
-                showMsg('Download failed: ' + err.message, 'error');
+                showMsg('❌ Download failed: ' + err.message, 'error');
             }
         }
 
-        function handleClick(name, type) {
-            if (type === 'folder') {
-                currentFolder = currentFolder ? `${currentFolder}/${name}` : name;
+        async function deleteItem(name) {
+            if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+
+            const itemPath = currentFolder ? `${currentFolder}/${name}` : name;
+
+            try {
+                const res = await fetch(`${API}/storage/${currentBucket}/items`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({ path: itemPath })
+                });
+
+                if (!res.ok) throw new Error('Delete failed');
+
+                showMsg('✅ Item deleted', 'success');
                 loadFiles();
+            } catch (err) {
+                showMsg('❌ Delete failed: ' + err.message, 'error');
             }
         }
 
         async function createBucket() {
-            const name = prompt('Bucket name:');
+            const name = prompt('Enter bucket name (letters, numbers, hyphens, underscores):');
             if (!name) return;
+
             try {
-                await fetch(`${API}/storage/buckets`, {
+                const res = await fetch(`${API}/storage/buckets`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
                     body: JSON.stringify({ name })
                 });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error);
+                }
+
                 showMsg('✅ Bucket created!', 'success');
                 loadBuckets();
             } catch (err) {
-                showMsg('❌ Error creating bucket', 'error');
+                showMsg('❌ ' + err.message, 'error');
             }
         }
 
         async function createFolder() {
-            if (!currentBucket) return showMsg('Select a bucket first', 'error');
-            const name = prompt('Folder name:');
+            if (!currentBucket) {
+                showMsg('Select a bucket first', 'error');
+                return;
+            }
+
+            const name = prompt('Enter folder name:');
             if (!name) return;
+
             const folderPath = currentFolder ? `${currentFolder}/${name}` : name;
+
             try {
-                await fetch(`${API}/storage/buckets/${currentBucket}/folders`, {
+                const res = await fetch(`${API}/storage/buckets/${currentBucket}/folders`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
                     body: JSON.stringify({ folderPath })
                 });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error);
+                }
+
                 showMsg('✅ Folder created!', 'success');
                 loadFiles();
             } catch (err) {
-                showMsg('❌ Error creating folder', 'error');
+                showMsg('❌ ' + err.message, 'error');
             }
         }
 
         async function uploadFiles() {
-            if (!currentBucket) return showMsg('Select a bucket first', 'error');
+            if (!currentBucket) {
+                showMsg('Select a bucket first', 'error');
+                return;
+            }
+
             const files = document.getElementById('fileInput').files;
+            if (!files.length) return;
+
             for (let file of files) {
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('folder', currentFolder);
+
                 try {
-                    await fetch(`${API}/storage/${currentBucket}/upload`, {
+                    const res = await fetch(`${API}/storage/${currentBucket}/upload`, {
                         method: 'POST',
                         headers: { 'X-API-Key': apiKey },
                         body: formData
                     });
+
+                    if (!res.ok) throw new Error('Upload failed');
+
                     showMsg(`✅ ${file.name} uploaded!`, 'success');
                 } catch (err) {
                     showMsg(`❌ Error uploading ${file.name}`, 'error');
                 }
             }
+
+            document.getElementById('fileInput').value = '';
             loadFiles();
             loadStorageStats();
         }
 
-        // Database
+        // Database Functions
         async function loadDatabases() {
             try {
                 const res = await fetch(`${API}/database/databases`, {
                     headers: { 'X-API-Key': apiKey }
                 });
-                const dbs = await res.json();
+                databases = await res.json();
+
+                // Update database list
                 const list = document.getElementById('dbList');
-                list.innerHTML = Object.keys(dbs).map(name => `
-                    <div style="padding:15px; background:white; border-radius:8px; margin-bottom:10px;">
-                        <strong>${name}</strong>
-                        <span style="color:#666; font-size:12px; margin-left:10px;">${dbs[name].engine}</span>
-                    </div>
-                `).join('') || '<p style="color:#666; padding:15px;">No databases yet</p>';
+                const keys = Object.keys(databases);
+
+                if (!keys.length) {
+                    list.innerHTML = '<p style="color:#666; padding:15px; text-align:center;">No databases yet. Create one above!</p>';
+                } else {
+                    list.innerHTML = keys.map(name => `
+                        <div class="key-item">
+                            <div class="key-info">
+                                <div class="key-name">🗄️ ${name}</div>
+                                <div class="key-prefix">SQLite • ${formatBytes(databases[name].size || 0)}</div>
+                            </div>
+                            <button class="btn btn-danger" style="padding:8px 15px;" onclick="deleteDatabase('${name}')">Delete</button>
+                        </div>
+                    `).join('');
+                }
+
+                // Update database selector
+                const select = document.getElementById('dbSelect');
+                select.innerHTML = '<option value="">Select database...</option>';
+                keys.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    select.appendChild(option);
+                });
             } catch (err) {
                 showMsg('Error loading databases', 'error');
             }
         }
 
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
         async function createDB() {
-            const name = document.getElementById('dbName').value;
-            if (!name) return showMsg('Enter database name', 'error');
+            const name = document.getElementById('dbName').value.trim();
+            if (!name) {
+                showMsg('Enter database name', 'error');
+                return;
+            }
+
             try {
-                await fetch(`${API}/database/databases`, {
+                const res = await fetch(`${API}/database/databases`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
-                    body: JSON.stringify({ name, engine: 'sqlite' })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({ name })
                 });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error);
+                }
+
                 showMsg('✅ Database created!', 'success');
                 document.getElementById('dbName').value = '';
                 loadDatabases();
             } catch (err) {
-                showMsg('❌ Error creating database', 'error');
+                showMsg('❌ ' + err.message, 'error');
+            }
+        }
+
+        async function deleteDatabase(name) {
+            if (!confirm(`Delete database "${name}"? All data will be lost!`)) return;
+
+            try {
+                const res = await fetch(`${API}/database/databases/${name}`, {
+                    method: 'DELETE',
+                    headers: { 'X-API-Key': apiKey }
+                });
+
+                if (!res.ok) throw new Error('Delete failed');
+
+                showMsg('✅ Database deleted', 'success');
+                loadDatabases();
+            } catch (err) {
+                showMsg('❌ ' + err.message, 'error');
+            }
+        }
+
+        async function loadTables() {
+            const dbName = document.getElementById('dbSelect').value;
+            if (!dbName) return;
+
+            try {
+                const res = await fetch(`${API}/database/databases/${dbName}/tables`, {
+                    headers: { 'X-API-Key': apiKey }
+                });
+                const data = await res.json();
+
+                if (data.tables && data.tables.length) {
+                    const tableList = data.tables.map(t => `"${t}"`).join(', ');
+                    document.getElementById('queryResults').innerHTML = `<p style="padding:10px; color:#666;">Tables: ${tableList}</p>`;
+                } else {
+                    document.getElementById('queryResults').innerHTML = '<p style="padding:10px; color:#666;">No tables yet. Use CREATE TABLE to create one.</p>';
+                }
+            } catch (err) {
+                console.error('Error loading tables:', err);
             }
         }
 
         async function executeSQL() {
-            const query = document.getElementById('sqlQuery').value;
-            if (!query) return showMsg('Enter SQL query', 'error');
+            const query = document.getElementById('sqlQuery').value.trim();
+            const dbName = document.getElementById('dbSelect').value;
 
-            // Get first database for now (TODO: Add DB selector)
-            const dbList = document.getElementById('dbList');
-            if (!dbList.children.length) return showMsg('Create a database first', 'error');
-            const dbName = dbList.children[0].querySelector('strong').textContent;
+            if (!dbName) {
+                showMsg('Select a database first', 'error');
+                return;
+            }
+
+            if (!query) {
+                showMsg('Enter a SQL query', 'error');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('queryResults');
+            resultsDiv.innerHTML = '<div class="loading"></div>';
 
             try {
                 const res = await fetch(`${API}/database/databases/${dbName}/query`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
                     body: JSON.stringify({ query })
                 });
+
                 const data = await res.json();
 
                 if (data.error) throw new Error(data.error);
 
-                // Display results
-                const resultsDiv = document.getElementById('queryResults');
                 if (data.results && data.results.length > 0) {
                     const cols = Object.keys(data.results[0]);
                     resultsDiv.innerHTML = `
-                        <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+                        <table>
                             <thead>
-                                <tr style="background:#f0f0f0;">
-                                    ${cols.map(c => `<th style="padding:8px; border:1px solid #ddd;">${c}</th>`).join('')}
-                                </tr>
+                                <tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>
                             </thead>
                             <tbody>
                                 ${data.results.map(row => `
-                                    <tr>
-                                        ${cols.map(c => `<td style="padding:8px; border:1px solid #ddd;">${row[c]}</td>`).join('')}
-                                    </tr>
+                                    <tr>${cols.map(c => `<td>${row[c] !== null ? row[c] : 'NULL'}</td>`).join('')}</tr>
                                 `).join('')}
                             </tbody>
                         </table>
+                        <p style="margin-top:10px; color:#666; font-size:13px;">${data.results.length} row(s) returned</p>
                     `;
+                } else if (data.message) {
+                    resultsDiv.innerHTML = `<p style="padding:15px; color:#10b981;">✅ ${data.message}</p>`;
+                    if (data.changes !== undefined) {
+                        resultsDiv.innerHTML += `<p style="padding:0 15px 15px; color:#666; font-size:13px;">${data.changes} row(s) affected</p>`;
+                    }
                 } else {
-                    resultsDiv.innerHTML = '<p style="color:#666; padding:10px;">No results or empty result set</p>';
+                    resultsDiv.innerHTML = '<p style="padding:15px; color:#666;">Query executed. No results returned.</p>';
                 }
+
                 showMsg('✅ Query executed!', 'success');
             } catch (err) {
-                showMsg('❌ SQL Error: ' + err.message, 'error');
+                resultsDiv.innerHTML = `<p style="padding:15px; color:#ef4444;">❌ Error: ${err.message}</p>`;
+                showMsg('❌ Query failed', 'error');
             }
         }
 
-        // API Keys
+        // API Keys Functions
         async function loadKeys() {
             try {
                 const res = await fetch(`${API}/auth/keys`, {
@@ -755,55 +1359,90 @@
                 });
                 const keys = await res.json();
                 const list = document.getElementById('keyList');
-                list.innerHTML = keys.map(k => `
-                    <div style="padding:15px; background:white; border-radius:8px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <strong>${k.name || 'Unnamed'}</strong>
-                            <div style="font-size:12px; color:#666;">${k.keyPrefix}</div>
+
+                if (!keys.length) {
+                    list.innerHTML = '<p style="color:#666; padding:15px; text-align:center;">No API keys yet. Generate one above!</p>';
+                } else {
+                    list.innerHTML = keys.map(k => `
+                        <div class="key-item">
+                            <div class="key-info">
+                                <div class="key-name">${k.name || 'Unnamed Key'}</div>
+                                <div class="key-prefix">${k.keyPrefix}</div>
+                            </div>
+                            <button class="btn btn-danger" style="padding:8px 15px;" onclick="revokeKey('${k.keyPrefix}')">Revoke</button>
                         </div>
-                        <button class="btn btn-danger" style="padding:6px 12px; font-size:12px;" onclick="revokeKey('${k.keyPrefix}')">Revoke</button>
-                    </div>
-                `).join('') || '<p style="color:#666; padding:15px;">No API keys yet</p>';
+                    `).join('');
+                }
             } catch (err) {
-                showMsg('Error loading keys', 'error');
+                showMsg('Error loading API keys', 'error');
             }
         }
 
         async function generateKey() {
-            const name = document.getElementById('keyName').value;
-            if (!name) return showMsg('Enter key name', 'error');
+            const name = document.getElementById('keyName').value.trim();
+            if (!name) {
+                showMsg('Enter a key name', 'error');
+                return;
+            }
+
             try {
                 const res = await fetch(`${API}/auth/keys`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
                     body: JSON.stringify({ name })
                 });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error);
+                }
+
                 const data = await res.json();
                 document.getElementById('keyValue').textContent = data.key;
                 document.getElementById('newKey').style.display = 'block';
                 document.getElementById('keyName').value = '';
+
                 showMsg('✅ API key generated!', 'success');
                 loadKeys();
             } catch (err) {
-                showMsg('❌ Error generating key', 'error');
+                showMsg('❌ ' + err.message, 'error');
             }
+        }
+
+        function copyKey() {
+            const key = document.getElementById('keyValue').textContent;
+            navigator.clipboard.writeText(key).then(() => {
+                showMsg('✅ Key copied to clipboard!', 'success');
+            }).catch(() => {
+                showMsg('❌ Failed to copy', 'error');
+            });
         }
 
         async function revokeKey(keyPrefix) {
-            if (!confirm('Revoke this key?')) return;
+            if (!confirm('Revoke this API key? Applications using it will stop working.')) return;
+
             try {
-                await fetch(`${API}/auth/keys/${keyPrefix}`, {
+                const res = await fetch(`${API}/auth/keys/${keyPrefix}`, {
                     method: 'DELETE',
                     headers: { 'X-API-Key': apiKey }
                 });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error);
+                }
+
                 showMsg('✅ Key revoked!', 'success');
                 loadKeys();
             } catch (err) {
-                showMsg('❌ Error revoking key', 'error');
+                showMsg('❌ ' + err.message, 'error');
             }
         }
 
-        // Init
+        // Initialize
         if (apiKey) {
             loadProfile();
         }
