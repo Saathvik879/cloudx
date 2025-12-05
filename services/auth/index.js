@@ -48,6 +48,50 @@ router.get('/profile', (req, res) => {
     res.status(401).json({ error: 'Invalid API key' });
 });
 
+// Google Sign-In
+router.post('/google-signin', async (req, res) => {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+        return res.status(400).json({ error: 'ID token required' });
+    }
+
+    try {
+        // In production, verify with firebase-admin
+        // const decodedToken = await admin.auth().verifyIdToken(idToken);
+        // const userId = decodedToken.uid;
+        // const email = decodedToken.email;
+
+        // For now, we'll simulate verification since we don't have service account
+        const userId = 'google_' + Date.now();
+        const email = 'user@gmail.com'; // Placeholder
+
+        // Check if user has a key
+        let existingKey = Object.keys(apiKeys).find(k => apiKeys[k].userId === userId);
+
+        if (existingKey) {
+            return res.json({ apiKey: existingKey });
+        }
+
+        // Create new key for user
+        const key = generateApiKey();
+        apiKeys[key] = {
+            name: 'Google Login',
+            userId: userId,
+            email: email,
+            permissions: ['all'],
+            created: new Date().toISOString(),
+            lastUsed: new Date().toISOString()
+        };
+        saveKeys();
+
+        res.json({ apiKey: key });
+    } catch (error) {
+        console.error('Google Auth Error:', error);
+        res.status(500).json({ error: 'Authentication failed' });
+    }
+});
+
 // Create API Key
 router.post('/keys', (req, res) => {
     const { name, userId, email } = req.body;

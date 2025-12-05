@@ -96,6 +96,17 @@
             color: white;
         }
 
+        .btn-google {
+            background: #db4437;
+            color: white;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .btn-google:hover {
+            background: #c53929;
+        }
+
         .tabs {
             display: flex;
             gap: 10px;
@@ -162,6 +173,7 @@
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
+            position: relative;
         }
 
         .file-item:hover {
@@ -315,7 +327,7 @@
                 <textarea id="sqlQuery" placeholder="SELECT * FROM table_name"
                     style="width:100%; padding:12px; border:2px solid #ddd; border-radius:8px; min-height:100px; font-family:monospace;"></textarea>
                 <button class="btn btn-primary" onclick="executeSQL()" style="margin-top:10px;">Execute</button>
-                <div id="queryResults" style="margin-top:15px;"></div>
+                <div id="queryResults" style="margin-top:15px; overflow-x:auto;"></div>
             </div>
             <div class="card">
                 <h2 style="margin-bottom:15px;">Databases</h2>
@@ -349,6 +361,17 @@
     <div id="loginModal" class="modal">
         <div class="modal-content">
             <h2 style="color:#667eea; margin-bottom:25px; text-align:center;">Login to CloudX</h2>
+
+            <button class="btn btn-google" onclick="loginGoogle()">
+                <span style="margin-right:10px;">G</span> Sign in with Google
+            </button>
+
+            <div style="display:flex; align-items:center; margin:20px 0;">
+                <div style="flex:1; height:1px; background:#ddd;"></div>
+                <div style="padding:0 10px; color:#666; font-size:14px;">OR</div>
+                <div style="flex:1; height:1px; background:#ddd;"></div>
+            </div>
+
             <div style="margin-bottom:20px;">
                 <h3 style="font-size:16px; margin-bottom:12px;">Admin Access</h3>
                 <input type="password" id="masterKey" placeholder="Enter master key"
@@ -360,6 +383,49 @@
     </div>
 
     <div id="message" class="message"></div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDOCAbC123dEf456GhI789jKl012MnO", // Replace with your actual config from Firebase Console
+            authDomain: "cloudx-e928c.firebaseapp.com",
+            projectId: "cloudx-e928c",
+            storageBucket: "cloudx-e928c.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        window.loginGoogle = async function () {
+            try {
+                const result = await signInWithPopup(auth, provider);
+                const idToken = await result.user.getIdToken();
+
+                // Send to backend
+                const res = await fetch('https://cloudx-api.onrender.com/api/v1/auth/google-signin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken })
+                });
+
+                if (!res.ok) throw new Error('Backend auth failed');
+
+                const data = await res.json();
+                localStorage.setItem('cloudx_auth', data.apiKey);
+                window.location.reload();
+            } catch (error) {
+                console.error('Google login error:', error);
+                alert('Login failed: ' + error.message);
+            }
+        };
+    </script>
 
     <script>
         const API = 'https://cloudx-api.onrender.com/api/v1';
@@ -391,6 +457,7 @@
                 const res = await fetch(`${API}/auth/profile`, {
                     headers: { 'X-API-Key': apiKey }
                 });
+                if (!res.ok) throw new Error('Profile load failed');
                 userProfile = await res.json();
 
                 // Update UI
@@ -407,6 +474,7 @@
                 loadStorageStats();
             } catch (err) {
                 console.error('Profile load error:', err);
+                if (apiKey) logout(); // Invalid key
             }
         }
 
@@ -495,11 +563,41 @@
                 return;
             }
             list.innerHTML = items.map(item => `
-                <div class="file-item" onclick="handleClick('${item.name}', '${item.type}')">
+                <div class="file-item" onclick="handleClick('${item.name}', '${item.type}')" style="position:relative;">
                     <div class="file-icon">${item.type === 'folder' ? '📁' : '📄'}</div>
                     <div style="font-weight:600; font-size:14px;">${item.name}</div>
+                    ${item.type === 'file' ? `
+                    <button onclick="event.stopPropagation(); downloadFile('${item.name}')" 
+                            style="position:absolute; top:10px; right:10px; background:rgba(102,126,234,0.1); border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">
+                        📥
+                    </button>` : ''}
                 </div>
             `).join('');
+        }
+
+        async function downloadFile(filename) {
+            if (!currentBucket) return;
+            const folder = currentFolder ? `?folder=${currentFolder}` : '';
+            const url = `${API}/storage/${currentBucket}/download/${filename}${folder}`;
+
+            try {
+                const res = await fetch(url, {
+                    headers: { 'X-API-Key': apiKey }
+                });
+                if (!res.ok) throw new Error('Download failed');
+
+                const blob = await res.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(downloadUrl);
+                document.body.removeChild(a);
+            } catch (err) {
+                showMsg('Download failed: ' + err.message, 'error');
+            }
         }
 
         function handleClick(name, type) {
@@ -604,8 +702,49 @@
         async function executeSQL() {
             const query = document.getElementById('sqlQuery').value;
             if (!query) return showMsg('Enter SQL query', 'error');
-            // TODO: Implement SQL execution endpoint
-            showMsg('SQL execution coming soon', 'error');
+
+            // Get first database for now (TODO: Add DB selector)
+            const dbList = document.getElementById('dbList');
+            if (!dbList.children.length) return showMsg('Create a database first', 'error');
+            const dbName = dbList.children[0].querySelector('strong').textContent;
+
+            try {
+                const res = await fetch(`${API}/database/databases/${dbName}/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+                    body: JSON.stringify({ query })
+                });
+                const data = await res.json();
+
+                if (data.error) throw new Error(data.error);
+
+                // Display results
+                const resultsDiv = document.getElementById('queryResults');
+                if (data.results && data.results.length > 0) {
+                    const cols = Object.keys(data.results[0]);
+                    resultsDiv.innerHTML = `
+                        <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+                            <thead>
+                                <tr style="background:#f0f0f0;">
+                                    ${cols.map(c => `<th style="padding:8px; border:1px solid #ddd;">${c}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.results.map(row => `
+                                    <tr>
+                                        ${cols.map(c => `<td style="padding:8px; border:1px solid #ddd;">${row[c]}</td>`).join('')}
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = '<p style="color:#666; padding:10px;">No results or empty result set</p>';
+                }
+                showMsg('✅ Query executed!', 'success');
+            } catch (err) {
+                showMsg('❌ SQL Error: ' + err.message, 'error');
+            }
         }
 
         // API Keys
@@ -618,7 +757,10 @@
                 const list = document.getElementById('keyList');
                 list.innerHTML = keys.map(k => `
                     <div style="padding:15px; background:white; border-radius:8px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-                        <strong>${k.name || 'Unnamed'}</strong>
+                        <div>
+                            <strong>${k.name || 'Unnamed'}</strong>
+                            <div style="font-size:12px; color:#666;">${k.keyPrefix}</div>
+                        </div>
                         <button class="btn btn-danger" style="padding:6px 12px; font-size:12px;" onclick="revokeKey('${k.keyPrefix}')">Revoke</button>
                     </div>
                 `).join('') || '<p style="color:#666; padding:15px;">No API keys yet</p>';
@@ -634,7 +776,7 @@
                 const res = await fetch(`${API}/auth/keys`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
-                    body: JSON.stringify({ name, userId: userProfile.userId, email: userProfile.email })
+                    body: JSON.stringify({ name })
                 });
                 const data = await res.json();
                 document.getElementById('keyValue').textContent = data.key;
