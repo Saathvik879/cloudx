@@ -11,13 +11,16 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
+// Serve static files (web dashboard)
+app.use(express.static('public'));
+
 // Mount services
 app.use('/api/v1/database', databaseService);
 app.use('/api/v1/storage', storageService);
 app.use('/api/v1/compute', computeService);
 
 app.get('/', (req, res) => {
-    res.send('CloudX API Gateway Running');
+    res.sendFile(__dirname + '/../public/index.html');
 });
 
 app.listen(PORT, () => {

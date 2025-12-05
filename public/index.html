@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudX Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>☁️ CloudX Dashboard</h1>
+            <p class="subtitle">Cloud Provider Simulation</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('storage')">Storage</button>
+            <button class="tab" onclick="showTab('database')">Database</button>
+            <button class="tab" onclick="showTab('compute')">Compute</button>
+        </div>
+
+        <!-- Storage Tab -->
+        <div id="storage" class="tab-content active">
+            <div class="card">
+                <h2>Create Storage Bucket</h2>
+                <div class="form-group">
+                    <input type="text" id="bucketName" placeholder="Bucket name">
+                    <input type="text" id="bucketRegion" placeholder="Region (e.g., us-east-1)">
+                    <button onclick="createBucket()">Create Bucket</button>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Storage Buckets</h2>
+                <div id="bucketsList" class="list"></div>
+                <button onclick="loadBuckets()">Refresh</button>
+            </div>
+        </div>
+
+        <!-- Database Tab -->
+        <div id="database" class="tab-content">
+            <div class="card">
+                <h2>Create Database</h2>
+                <div class="form-group">
+                    <input type="text" id="dbName" placeholder="Database name">
+                    <input type="text" id="dbEngine" placeholder="Engine (e.g., postgres)">
+                    <select id="dbSize">
+                        <option value="small">Small</option>
+                        <option value="medium">Medium</option>
+                        <option value="large">Large</option>
+                    </select>
+                    <button onclick="createDatabase()">Create Database</button>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Databases</h2>
+                <div id="databasesList" class="list"></div>
+                <button onclick="loadDatabases()">Refresh</button>
+            </div>
+        </div>
+
+        <!-- Compute Tab -->
+        <div id="compute" class="tab-content">
+            <div class="card">
+                <h2>Deploy Service</h2>
+                <div class="form-group">
+                    <input type="text" id="serviceName" placeholder="Service name">
+                    <input type="text" id="serviceSource" placeholder="Source path">
+                    <input type="text" id="serviceRuntime" placeholder="Runtime (e.g., nodejs)">
+                    <button onclick="deployService()">Deploy Service</button>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Services</h2>
+                <div id="servicesList" class="list"></div>
+                <button onclick="loadServices()">Refresh</button>
+            </div>
+        </div>
+
+        <div id="message" class="message"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

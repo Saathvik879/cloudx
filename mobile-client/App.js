@@ -2,9 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, Button, Alert } from 'react-native';
 import React, { useState } from 'react';
 
-// For local testing: Replace with your computer's local IP address
-// Find it by running: ipconfig (look for IPv4 Address on your WiFi/Ethernet adapter)
-const API_URL = 'http://192.168.1.6:3000'; // Update this IP to match your computer's IP
+const API_URL = 'https://cloudx-api.onrender.com';
 
 export default function App() {
     const [status, setStatus] = useState('Idle');
