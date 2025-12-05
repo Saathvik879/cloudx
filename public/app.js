@@ -1,58 +1,70 @@
 const API_URL = window.location.origin;
 
-let currentBucket = '';
-let currentFolder = '';
-let selectedItem = null;
+// Master key for admin access (must match backend)
+const MASTER_KEY = 'cloudx-admin-2024-secure-key';
 
-function showTab(tabName) {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+// Authentication state
+let isAuthenticated = false;
+let userType = null; // 'admin' or 'user'
+let currentApiKey = null;
 
-    document.getElementById(tabName).classList.add('active');
-    event.target.classList.add('active');
+// Login Modal Functions
+function showLoginModal() {
+    document.getElementById('loginModal').style.display = 'flex';
 }
 
-function showMessage(text, type = 'success') {
-    const msg = document.getElementById('message');
-    msg.textContent = text;
-    msg.className = `message show ${type}`;
-    setTimeout(() => msg.classList.remove('show'), 3000);
+function closeLoginModal() {
+    document.getElementById('loginModal').style.display = 'none';
 }
 
-// Initialize
+function loginWithMasterKey() {
+    const inputKey = document.getElementById('masterKeyInput').value;
+
+    if (inputKey === MASTER_KEY) {
+        isAuthenticated = true;
+        userType = 'admin';
+        currentApiKey = MASTER_KEY;
+        localStorage.setItem('cloudx_auth', JSON.stringify({ type: 'admin', key: MASTER_KEY }));
+        closeLoginModal();
+        showMessage('✅ Admin access granted!', 'success');
+        loadBuckets();
+        loadDatabases();
+        loadApiKeys();
+    } else {
+        showMessage('❌ Invalid master key!', 'error');
+    }
+}
+
+function loginWithGoogle() {
+    // Redirect to Google OAuth page
+    window.location.href = '/login.html';
+}
+
+// Check authentication on load
 window.addEventListener('load', () => {
+    const auth = localStorage.getItem('cloudx_auth');
+    if (auth) {
+        const authData = JSON.parse(auth);
+        isAuthenticated = true;
+        userType = authData.type;
+        currentApiKey = authData.key;
+        if (userType === 'admin') {
+            showMessage('Welcome back, Admin!', 'success');
+        }
+    }
+
     loadBuckets();
     loadDatabases();
     loadApiKeys();
-
-    // Close context menu on click outside
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.context-menu')) {
-            document.getElementById('contextMenu').style.display = 'none';
-        }
+    Object.keys(buckets).forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        selector.appendChild(option);
     });
-});
-
-// --- File Browser Functions ---
-
-// Load buckets into selector
-async function loadBuckets() {
-    try {
-        const res = await fetch(`${API_URL}/api/v1/storage/buckets`);
-        const buckets = await res.json();
-
-        const selector = document.getElementById('bucketSelector');
-        selector.innerHTML = '<option value="">Select a bucket...</option>';
-
-        Object.keys(buckets).forEach(name => {
-            const option = document.createElement('option');
-            option.value = name;
-            option.textContent = name;
-            selector.appendChild(option);
-        });
-    } catch (err) {
-        showMessage('Error loading buckets: ' + err.message, 'error');
-    }
+} catch (err) {
+    showMessage('Error loading buckets: ' + err.message, 'error');
+}
 }
 
 // Load files in current bucket/folder
