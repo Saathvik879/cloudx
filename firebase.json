@@ -1,5 +1,6 @@
 {
     "hosting": {
+        "site": "cloudx-a",
         "public": "public",
         "ignore": [
             "firebase.json",
